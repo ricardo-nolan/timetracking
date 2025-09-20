@@ -21,6 +21,12 @@ A comprehensive Python-based time tracking application with a modern graphical u
 
 ## Installation
 
+### Quick Install
+```bash
+./install.sh
+```
+
+### Manual Installation
 1. Install Python 3.7 or higher
 2. Install tkinter support (macOS with Homebrew):
    ```bash
@@ -38,7 +44,12 @@ A comprehensive Python-based time tracking application with a modern graphical u
 
 ## Usage
 
-1. Run the application:
+1. **First time setup** (if not done during installation):
+   ```bash
+   ./install.sh
+   ```
+
+2. Run the application:
    ```bash
    # Option 1: Using the startup script
    ./run.sh
