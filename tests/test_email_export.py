@@ -53,12 +53,15 @@ class TestEmailExporter(unittest.TestCase):
     
     def test_load_config(self):
         """Test loading configuration from file"""
-        # Create test config file
+        from password_utils import password_encryption
+        
+        # Create test config file with encrypted password
+        encrypted_password = password_encryption.encrypt_password('testpass')
         config_data = {
             'smtp_server': 'smtp.test.com',
             'smtp_port': 587,
             'sender_email': 'test@example.com',
-            'sender_password': 'testpass'
+            'sender_password': encrypted_password
         }
         
         with open(self.temp_config.name, 'w') as f:
@@ -92,7 +95,33 @@ class TestEmailExporter(unittest.TestCase):
         self.assertEqual(config_data['smtp_server'], 'smtp.test.com')
         self.assertEqual(config_data['smtp_port'], 465)
         self.assertEqual(config_data['sender_email'], 'test@example.com')
-        self.assertEqual(config_data['sender_password'], 'testpass')
+        # Password should be encrypted (not plain text)
+        self.assertNotEqual(config_data['sender_password'], 'testpass')
+        self.assertIsInstance(config_data['sender_password'], str)
+        self.assertGreater(len(config_data['sender_password']), 0)
+    
+    def test_password_encryption(self):
+        """Test password encryption and decryption"""
+        from password_utils import password_encryption
+        
+        test_password = 'test_password_123'
+        
+        # Test encryption
+        encrypted = password_encryption.encrypt_password(test_password)
+        self.assertNotEqual(encrypted, test_password)
+        self.assertIsInstance(encrypted, str)
+        self.assertGreater(len(encrypted), 0)
+        
+        # Test decryption
+        decrypted = password_encryption.decrypt_password(encrypted)
+        self.assertEqual(decrypted, test_password)
+        
+        # Test empty password
+        empty_encrypted = password_encryption.encrypt_password('')
+        self.assertEqual(empty_encrypted, '')
+        
+        empty_decrypted = password_encryption.decrypt_password('')
+        self.assertEqual(empty_decrypted, '')
     
     @patch('smtplib.SMTP')
     def test_send_time_report_success(self, mock_smtp):

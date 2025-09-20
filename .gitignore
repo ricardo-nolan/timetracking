@@ -33,6 +33,7 @@ time_tracker.db
 
 # Configuration files with sensitive data
 email_config.json
+email_key.key
 
 # IDE
 .vscode/

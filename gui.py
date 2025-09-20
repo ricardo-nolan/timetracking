@@ -1333,7 +1333,7 @@ Test your connection to verify settings work!"""
             self.email_exporter.smtp_server = smtp_server
             self.email_exporter.smtp_port = smtp_port
             
-            # Store credentials (in a real app, you'd want to encrypt these)
+            # Store credentials (password will be encrypted automatically)
             self.email_exporter.sender_email = sender_email
             self.email_exporter.sender_password = sender_password
             

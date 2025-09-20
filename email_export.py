@@ -7,6 +7,7 @@ from datetime import datetime, date
 from typing import List, Tuple, Optional
 import json
 import os
+from password_utils import password_encryption
 
 class EmailExporter:
     def __init__(self, smtp_server: str = "smtp.gmail.com", smtp_port: int = 587):
@@ -77,18 +78,29 @@ class EmailExporter:
                     self.smtp_server = config.get('smtp_server', 'smtp.gmail.com')
                     self.smtp_port = config.get('smtp_port', 587)
                     self.sender_email = config.get('sender_email')
-                    self.sender_password = config.get('sender_password')
+                    
+                    # Decrypt password if it's encrypted
+                    encrypted_password = config.get('sender_password')
+                    if encrypted_password:
+                        self.sender_password = password_encryption.decrypt_password(encrypted_password)
+                    else:
+                        self.sender_password = None
         except Exception:
             pass  # Use defaults if config file is corrupted
     
     def save_config(self):
         """Save email configuration to file"""
         try:
+            # Encrypt password before saving
+            encrypted_password = None
+            if self.sender_password:
+                encrypted_password = password_encryption.encrypt_password(self.sender_password)
+            
             config = {
                 'smtp_server': self.smtp_server,
                 'smtp_port': self.smtp_port,
                 'sender_email': self.sender_email,
-                'sender_password': self.sender_password
+                'sender_password': encrypted_password
             }
             with open(self.config_file, 'w') as f:
                 json.dump(config, f)
