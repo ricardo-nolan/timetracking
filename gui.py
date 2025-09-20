@@ -163,8 +163,23 @@ class TimeTrackerGUI:
         self.filter_combo['values'] = ["All Projects"] + project_names
         
         if project_names:
-            self.project_combo.current(0)
-            self.filter_combo.current(0)
+            # Set default project to the project of the latest entry
+            latest_project_id = self.db.get_latest_entry_project()
+            if latest_project_id:
+                # Find the index of the latest project
+                for i, (id, name, desc, email, rate, currency) in enumerate(projects):
+                    if id == latest_project_id:
+                        self.project_combo.current(i)
+                        self.filter_combo.current(i + 1)  # +1 because filter_combo has "All Projects" at index 0
+                        break
+                else:
+                    # If latest project not found, default to first project
+                    self.project_combo.current(0)
+                    self.filter_combo.current(0)
+            else:
+                # No entries yet, default to first project
+                self.project_combo.current(0)
+                self.filter_combo.current(0)
     
     def refresh_entries(self):
         """Refresh the time entries display"""

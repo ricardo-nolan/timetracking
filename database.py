@@ -286,6 +286,23 @@ class TimeTrackerDB:
         conn.close()
         return deleted
     
+    def get_latest_entry_project(self) -> Optional[int]:
+        """Get the project ID of the most recent time entry"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT project_id 
+            FROM time_entries 
+            ORDER BY start_time DESC 
+            LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        return result[0] if result else None
+    
     def add_project_email(self, project_id: int, email: str, is_primary: bool = False) -> int:
         """Add an email to a project"""
         conn = sqlite3.connect(self.db_path)
