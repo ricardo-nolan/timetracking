@@ -21,43 +21,48 @@ A comprehensive Python-based time tracking application with a modern graphical u
 
 ## Installation
 
-### Quick Install
+### Option 1: Install from PyPI (Recommended)
 ```bash
+pip install timetracking
+```
+
+### Option 2: Install from Source
+```bash
+git clone https://github.com/ricardo-nolan/timetracking.git
+cd timetracking
+pip install -e .
+```
+
+### Option 3: Development Setup
+```bash
+git clone https://github.com/ricardo-nolan/timetracking.git
+cd timetracking
 ./install.sh
 ```
 
-### Manual Installation
-1. Install Python 3.7 or higher
-2. Install tkinter support (macOS with Homebrew):
+### Prerequisites
+- Python 3.7 or higher
+- tkinter support (macOS with Homebrew):
    ```bash
    brew install python-tk
-   ```
-3. Create and activate virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-4. Install required dependencies:
-   ```bash
-   pip install -r requirements.txt
    ```
 
 ## Usage
 
-1. **First time setup** (if not done during installation):
-   ```bash
-   ./install.sh
-   ```
+### Quick Start
+```bash
+timetracking
+```
 
-2. Run the application:
-   ```bash
-   # Option 1: Using the startup script
-   ./run.sh
-   
-   # Option 2: Manual activation
-   source venv/bin/activate
-   python main.py
-   ```
+### Development Mode
+```bash
+# Option 1: Using the startup script
+./run.sh
+
+# Option 2: Manual activation
+source venv/bin/activate
+python main.py
+```
 
 2. **Project Management**:
    - **Adding Projects**: Enter project name, description, and default email
@@ -186,6 +191,42 @@ timer/
 - **PDF export failing**: Ensure you have write permissions in the selected directory
 - **Database errors**: The application automatically handles database migrations
 - **GUI issues**: Ensure tkinter is properly installed (`brew install python-tk` on macOS)
+
+## Development
+
+### Running Tests
+```bash
+./run_tests.sh
+```
+
+### Test Coverage
+```bash
+./run_tests.sh --cov
+```
+
+### Building Distribution
+```bash
+# Install build tools
+pip install build twine
+
+# Build package
+python -m build
+
+# Upload to PyPI (requires PyPI account)
+twine upload dist/*
+```
+
+### Package Structure
+```
+timetracking/
+├── __init__.py
+├── main.py          # Entry point
+├── database.py      # SQLite operations
+├── gui.py           # Tkinter interface
+├── pdf_export.py    # PDF generation
+├── email_export.py  # Email functionality
+└── password_utils.py # Encryption utilities
+```
 
 ## License
 
