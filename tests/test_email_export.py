@@ -99,7 +99,7 @@ class TestEmailExporter(unittest.TestCase):
         """Test successful email sending"""
         # Mock SMTP server
         mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_smtp.return_value = mock_server
         
         exporter = EmailExporter()
         exporter.sender_email = "test@example.com"
@@ -114,9 +114,10 @@ class TestEmailExporter(unittest.TestCase):
         )
         
         self.assertTrue(success)
+        mock_smtp.assert_called_once_with("smtp.gmail.com", 587)
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once_with("test@example.com", "testpass")
-        mock_server.send_message.assert_called_once()
+        mock_server.sendmail.assert_called_once()
         mock_server.quit.assert_called_once()
     
     @patch('smtplib.SMTP')
@@ -124,7 +125,7 @@ class TestEmailExporter(unittest.TestCase):
         """Test email sending with PDF attachment"""
         # Mock SMTP server
         mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_smtp.return_value = mock_server
         
         # Create temporary PDF file
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_pdf:
@@ -146,7 +147,8 @@ class TestEmailExporter(unittest.TestCase):
             )
             
             self.assertTrue(success)
-            mock_server.send_message.assert_called_once()
+            mock_smtp.assert_called_once_with("smtp.gmail.com", 587)
+            mock_server.sendmail.assert_called_once()
             
         finally:
             # Clean up
@@ -179,7 +181,7 @@ class TestEmailExporter(unittest.TestCase):
         # Mock SMTP server that fails on login
         mock_server = MagicMock()
         mock_server.login.side_effect = Exception("Authentication failed")
-        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_smtp.return_value = mock_server
         
         exporter = EmailExporter()
         exporter.sender_email = "test@example.com"
@@ -207,7 +209,7 @@ class TestEmailExporter(unittest.TestCase):
         
         with patch('smtplib.SMTP') as mock_smtp:
             mock_server = MagicMock()
-            mock_smtp.return_value.__enter__.return_value = mock_server
+            mock_smtp.return_value = mock_server
             
             exporter = EmailExporter()
             exporter.sender_email = "test@example.com"
@@ -223,7 +225,8 @@ class TestEmailExporter(unittest.TestCase):
             
             self.assertTrue(success)
             # Verify email was sent (duration formatting is tested in the email content)
-            mock_server.send_message.assert_called_once()
+            mock_smtp.assert_called_once_with("smtp.gmail.com", 587)
+            mock_server.sendmail.assert_called_once()
 
 
 if __name__ == '__main__':

@@ -49,8 +49,9 @@ class TestTimeTrackerIntegration(unittest.TestCase):
         self.assertIsInstance(entry_id, int)
         
         # 4. Stop time tracking
-        success = self.db.stop_timer(project_id)
-        self.assertTrue(success)
+        duration = self.db.stop_timer(project_id)
+        self.assertIsNotNone(duration)
+        self.assertGreaterEqual(duration, 0)  # Allow 0 duration for very fast operations
         
         # 5. Verify entry was created correctly
         entry = self.db.get_entry(entry_id)
@@ -96,7 +97,7 @@ class TestTimeTrackerIntegration(unittest.TestCase):
         """Test complete email export workflow"""
         # Mock SMTP server
         mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_smtp.return_value = mock_server
         
         # Create test data
         project_id = self.db.add_project("Email Test Project", "Email Test Description", "email@example.com")
@@ -125,9 +126,10 @@ class TestTimeTrackerIntegration(unittest.TestCase):
         )
         
         self.assertTrue(success)
+        mock_smtp.assert_called_once_with("smtp.gmail.com", 587)
         mock_server.starttls.assert_called_once()
         mock_server.login.assert_called_once_with("test@example.com", "testpass")
-        mock_server.send_message.assert_called_once()
+        mock_server.sendmail.assert_called_once()
         mock_server.quit.assert_called_once()
     
     def test_time_entry_editing_workflow(self):
