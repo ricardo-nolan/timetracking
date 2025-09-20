@@ -122,7 +122,7 @@ class TimeTrackerGUI:
         self.filter_combo.bind("<<ComboboxSelected>>", self.on_filter_change)
         
         ttk.Label(filter_frame, text="Date Range:").grid(row=0, column=2, sticky=tk.W, padx=(20, 5))
-        self.date_range_var = tk.StringVar(value="All Time")
+        self.date_range_var = tk.StringVar(value="Last 7 Days")
         date_combo = ttk.Combobox(filter_frame, textvariable=self.date_range_var, state="readonly", width=15)
         date_combo['values'] = ("All Time", "Today", "This Week", "This Month", "Last 7 Days", "Last 30 Days")
         date_combo.grid(row=0, column=3, sticky=tk.W, padx=(0, 5))
