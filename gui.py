@@ -58,9 +58,21 @@ class TimeTrackerGUI:
         self.project_email_var = tk.StringVar()
         ttk.Entry(project_frame, textvariable=self.project_email_var, width=30).grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(0, 5), pady=(5, 0))
         
-        ttk.Label(project_frame, text="Hourly Rate (€):").grid(row=3, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        # Rate and currency frame
+        rate_frame = ttk.Frame(project_frame)
+        rate_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        rate_frame.columnconfigure(1, weight=1)
+        rate_frame.columnconfigure(3, weight=1)
+        
+        ttk.Label(rate_frame, text="Hourly Rate:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.project_rate_var = tk.StringVar()
-        ttk.Entry(project_frame, textvariable=self.project_rate_var, width=30).grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(0, 5), pady=(5, 0))
+        ttk.Entry(rate_frame, textvariable=self.project_rate_var, width=15).grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        
+        ttk.Label(rate_frame, text="Currency:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
+        self.project_currency_var = tk.StringVar(value="EUR")
+        currency_combo = ttk.Combobox(rate_frame, textvariable=self.project_currency_var, width=10, state="readonly")
+        currency_combo['values'] = ['EUR', 'USD']
+        currency_combo.grid(row=0, column=3, sticky=(tk.W, tk.E))
         
         ttk.Button(project_frame, text="Add Project", command=self.add_project).grid(row=0, column=2, padx=(5, 0))
         ttk.Button(project_frame, text="Edit Project", command=self.edit_project).grid(row=1, column=2, padx=(5, 0), pady=(5, 0))
@@ -146,7 +158,7 @@ class TimeTrackerGUI:
     def refresh_projects(self):
         """Refresh the projects combobox"""
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate, currency in projects]
         self.project_combo['values'] = project_names
         self.filter_combo['values'] = ["All Projects"] + project_names
         
@@ -193,7 +205,7 @@ class TimeTrackerGUI:
         
         # Populate treeview
         for entry in entries:
-            entry_id, proj_id, proj_name, description, start_time, end_time, duration, rate = entry
+            entry_id, proj_id, proj_name, description, start_time, end_time, duration, rate, currency = entry
             
             # Format date
             start_dt = datetime.fromisoformat(start_time)
@@ -244,6 +256,7 @@ class TimeTrackerGUI:
         description = self.project_desc_var.get().strip()
         email = self.project_email_var.get().strip()
         rate_str = self.project_rate_var.get().strip()
+        currency = self.project_currency_var.get()
         
         if not name:
             messagebox.showerror("Error", "Project name is required")
@@ -262,12 +275,13 @@ class TimeTrackerGUI:
                 return
         
         try:
-            self.db.add_project(name, description, email, rate)
+            self.db.add_project(name, description, email, rate, currency)
             messagebox.showinfo("Success", f"Project '{name}' added successfully")
             self.project_name_var.set("")
             self.project_desc_var.set("")
             self.project_email_var.set("")
             self.project_rate_var.set("")
+            self.project_currency_var.set("EUR")
             self.refresh_projects()
         except ValueError as e:
             messagebox.showerror("Error", str(e))
@@ -286,9 +300,9 @@ class TimeTrackerGUI:
             # Get project details
             projects = self.db.get_projects()
             project_details = None
-            for proj_id, name, desc, email, rate in projects:
+            for proj_id, name, desc, email, rate, currency in projects:
                 if proj_id == project_id:
-                    project_details = (proj_id, name, desc, email, rate)
+                    project_details = (proj_id, name, desc, email, rate, currency)
                     break
             
             if project_details:
@@ -378,7 +392,7 @@ class TimeTrackerGUI:
                 entries = self.db.get_time_entries(project_id)
                 if entries:
                     entry = entries[0]  # Most recent entry
-                    entry_id, proj_id, proj_name, description, start_time, end_time, duration_minutes, rate = entry
+                    entry_id, proj_id, proj_name, description, start_time, end_time, duration_minutes, rate, currency = entry
                     if end_time:
                         start_dt = datetime.fromisoformat(start_time)
                         end_dt = datetime.fromisoformat(end_time)
@@ -737,7 +751,7 @@ class EmailDialog:
 class ProjectEditDialog:
     def __init__(self, parent, db, project_details, refresh_callback):
         self.db = db
-        self.project_id, self.project_name, self.project_desc, self.project_email, self.project_rate = project_details
+        self.project_id, self.project_name, self.project_desc, self.project_email, self.project_rate, self.project_currency = project_details
         self.refresh_callback = refresh_callback
         
         self.dialog = tk.Toplevel(parent)
@@ -772,9 +786,21 @@ class ProjectEditDialog:
         self.desc_var = tk.StringVar(value=self.project_desc or "")
         ttk.Entry(main_frame, textvariable=self.desc_var, width=50).grid(row=2, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
         
-        ttk.Label(main_frame, text="Hourly Rate (€):").grid(row=3, column=0, sticky=tk.W, pady=(0, 5))
+        # Rate and currency frame
+        rate_currency_frame = ttk.Frame(main_frame)
+        rate_currency_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
+        rate_currency_frame.columnconfigure(1, weight=1)
+        rate_currency_frame.columnconfigure(3, weight=1)
+        
+        ttk.Label(rate_currency_frame, text="Hourly Rate:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.rate_var = tk.StringVar(value=str(self.project_rate) if self.project_rate is not None else "")
-        ttk.Entry(main_frame, textvariable=self.rate_var, width=50).grid(row=3, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        ttk.Entry(rate_currency_frame, textvariable=self.rate_var, width=15).grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        
+        ttk.Label(rate_currency_frame, text="Currency:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
+        self.currency_var = tk.StringVar(value=self.project_currency or "EUR")
+        currency_combo = ttk.Combobox(rate_currency_frame, textvariable=self.currency_var, width=10, state="readonly")
+        currency_combo['values'] = ['EUR', 'USD']
+        currency_combo.grid(row=0, column=3, sticky=(tk.W, tk.E))
         
         # Project emails section
         ttk.Label(main_frame, text="Project Emails:", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
@@ -819,7 +845,7 @@ class ProjectEditDialog:
     def load_projects(self):
         """Load all projects into the selector"""
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate, currency in projects]
         self.project_selector['values'] = project_names
         
         # Set current project as selected
@@ -933,12 +959,13 @@ class ProjectEditDialog:
         name = self.name_var.get().strip()
         description = self.desc_var.get().strip()
         rate_str = self.rate_var.get().strip()
+        currency = self.currency_var.get()
         
         if not name:
             messagebox.showerror("Error", "Project name is required")
             return
         
-        # Parse rate if provided
+        # Parse rate if provided, allow empty to unset rate
         rate = None
         if rate_str:
             try:
@@ -951,7 +978,7 @@ class ProjectEditDialog:
                 return
         
         try:
-            self.db.update_project(self.project_id, name, description, rate)
+            self.db.update_project(self.project_id, name, description, rate, currency)
             messagebox.showinfo("Success", "Project updated successfully")
             self.refresh_callback()
             self.dialog.destroy()
@@ -992,7 +1019,7 @@ class EditEntryDialog:
         
         # Populate projects
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate, currency in projects]
         self.project_combo['values'] = project_names
         
         # Set current project as selected

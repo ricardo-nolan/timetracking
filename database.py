@@ -36,6 +36,13 @@ class TimeTrackerDB:
             # Column already exists, ignore
             pass
         
+        # Add currency column if it doesn't exist (migration)
+        try:
+            cursor.execute("ALTER TABLE projects ADD COLUMN currency TEXT DEFAULT 'EUR'")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
+        
         # Create project_emails table for multiple emails per project
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS project_emails (
@@ -65,15 +72,15 @@ class TimeTrackerDB:
         conn.commit()
         conn.close()
     
-    def add_project(self, name: str, description: str = "", default_email: str = "", rate: float = None) -> int:
+    def add_project(self, name: str, description: str = "", default_email: str = "", rate: float = None, currency: str = "EUR") -> int:
         """Add a new project and return its ID"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
             cursor.execute(
-                "INSERT INTO projects (name, description, default_email, rate) VALUES (?, ?, ?, ?)",
-                (name, description, default_email, rate)
+                "INSERT INTO projects (name, description, default_email, rate, currency) VALUES (?, ?, ?, ?, ?)",
+                (name, description, default_email, rate, currency)
             )
             project_id = cursor.lastrowid
             conn.commit()
@@ -83,12 +90,12 @@ class TimeTrackerDB:
         finally:
             conn.close()
     
-    def get_projects(self) -> List[Tuple[int, str, str, str, float]]:
+    def get_projects(self) -> List[Tuple[int, str, str, str, float, str]]:
         """Get all projects"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute("SELECT id, name, description, default_email, rate FROM projects ORDER BY name")
+        cursor.execute("SELECT id, name, description, default_email, rate, currency FROM projects ORDER BY name")
         projects = cursor.fetchall()
         conn.close()
         return projects
@@ -155,7 +162,7 @@ class TimeTrackerDB:
         
         query = """
             SELECT te.id, te.project_id, p.name, te.description, 
-                   te.start_time, te.end_time, te.duration_minutes, p.rate
+                   te.start_time, te.end_time, te.duration_minutes, p.rate, p.currency
             FROM time_entries te
             JOIN projects p ON te.project_id = p.id
             WHERE 1=1
@@ -321,7 +328,7 @@ class TimeTrackerDB:
         conn.close()
         return deleted
     
-    def update_project(self, project_id: int, name: str = None, description: str = None, rate: float = None) -> bool:
+    def update_project(self, project_id: int, name: str = None, description: str = None, rate: float = None, currency: str = None) -> bool:
         """Update a project"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -340,6 +347,10 @@ class TimeTrackerDB:
         if rate is not None:
             updates.append("rate = ?")
             params.append(rate)
+        
+        if currency is not None:
+            updates.append("currency = ?")
+            params.append(currency)
         
         if not updates:
             conn.close()

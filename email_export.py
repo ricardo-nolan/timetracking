@@ -166,7 +166,7 @@ class EmailExporter:
             total_duration = 0
             total_amount = 0.0
             for entry in time_entries:
-                entry_id, project_id, proj_name, description, start_time, end_time, duration, rate = entry
+                entry_id, project_id, proj_name, description, start_time, end_time, duration, rate, currency = entry
                 
                 # Format dates and times
                 start_dt = datetime.fromisoformat(start_time)
@@ -216,15 +216,16 @@ class EmailExporter:
                 amount_str = ""
                 if has_rates:
                     if rate is not None and rate > 0:
-                        rate_str = f"€{rate:.2f}/h"
+                        currency_symbol = "€" if currency == "EUR" else "$"
+                        rate_str = f"{currency_symbol}{rate:.2f}/h"
                         if duration is not None and duration > 0:
                             # Calculate amount based on duration in hours
                             hours = duration / 60.0  # Convert minutes to hours
                             amount = hours * rate
                             total_amount += amount
-                            amount_str = f"€{amount:.2f}"
+                            amount_str = f"{currency_symbol}{amount:.2f}"
                         else:
-                            amount_str = "€0.00"
+                            amount_str = f"{currency_symbol}0.00"
                     else:
                         rate_str = "N/A"
                         amount_str = "N/A"
@@ -263,7 +264,14 @@ class EmailExporter:
             
             # Total amount if rates are present
             if has_rates and total_amount > 0:
-                html += f"<p><strong>Total Amount: €{total_amount:.2f}</strong></p>"
+                # Use the currency from the first entry with a rate
+                first_currency = None
+                for entry in time_entries:
+                    if entry[7] is not None and entry[7] > 0:  # rate > 0
+                        first_currency = entry[8]  # currency
+                        break
+                currency_symbol = "€" if first_currency == "EUR" else "$"
+                html += f"<p><strong>Total Amount: {currency_symbol}{total_amount:.2f}</strong></p>"
         
         html += """
         </body>
