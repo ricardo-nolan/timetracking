@@ -636,6 +636,21 @@ class EmailDialog:
         from gui import EmailSettingsDialog
         settings_dialog = EmailSettingsDialog(self.dialog, self.email_exporter)
         self.dialog.wait_window(settings_dialog.dialog)
+        
+        # After settings dialog closes, refresh the email dialog
+        self.refresh_dialog()
+    
+    def refresh_dialog(self):
+        """Refresh the email dialog after settings are updated"""
+        # Reload email configuration
+        self.email_exporter.load_config()
+        
+        # Clear all widgets from the dialog
+        for widget in self.dialog.winfo_children():
+            widget.destroy()
+        
+        # Rebuild the UI with updated settings
+        self.setup_ui()
     
     def send_email_report(self):
         """Send the email report"""
