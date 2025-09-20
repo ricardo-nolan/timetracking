@@ -64,9 +64,15 @@ class PDFExporter:
             # Create table data
             table_data = [['Date', 'Project', 'Description', 'Start Time', 'End Time', 'Duration']]
             
+            # Check if any project has a rate set
+            has_rates = any(entry[7] is not None for entry in time_entries)
+            if has_rates:
+                table_data[0].extend(['Rate', 'Amount'])
+            
             total_duration = 0
+            total_amount = 0.0
             for entry in time_entries:
-                entry_id, project_id, project_name, description, start_time, end_time, duration = entry
+                entry_id, project_id, project_name, description, start_time, end_time, duration, rate = entry
                 
                 # Format dates and times
                 start_dt = datetime.fromisoformat(start_time)
@@ -111,17 +117,45 @@ class PDFExporter:
                 else:
                     duration_str = "Running"
                 
-                table_data.append([
+                # Calculate rate and amount
+                rate_str = ""
+                amount_str = ""
+                if has_rates:
+                    if rate is not None and rate > 0:
+                        rate_str = f"€{rate:.2f}/h"
+                        if duration is not None and duration > 0:
+                            # Calculate amount based on duration in hours
+                            hours = duration / 60.0  # Convert minutes to hours
+                            amount = hours * rate
+                            total_amount += amount
+                            amount_str = f"€{amount:.2f}"
+                        else:
+                            amount_str = "€0.00"
+                    else:
+                        rate_str = "N/A"
+                        amount_str = "N/A"
+                
+                row_data = [
                     date_str,
                     project_name,
                     description or "",
                     start_time_str,
                     end_time_str,
                     duration_str
-                ])
+                ]
+                
+                if has_rates:
+                    row_data.extend([rate_str, amount_str])
+                
+                table_data.append(row_data)
             
-            # Create table
-            table = Table(table_data, colWidths=[1*inch, 1.2*inch, 2*inch, 0.8*inch, 0.8*inch, 0.8*inch])
+            # Create table with dynamic column widths
+            if has_rates:
+                col_widths = [1*inch, 1.2*inch, 2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch]
+            else:
+                col_widths = [1*inch, 1.2*inch, 2*inch, 0.8*inch, 0.8*inch, 0.8*inch]
+            
+            table = Table(table_data, colWidths=col_widths)
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -146,6 +180,10 @@ class PDFExporter:
                 total_str = f"{total_minutes} minutes"
             
             story.append(Paragraph(f"<b>Total Time: {total_str}</b>", self.styles['Normal']))
+            
+            # Total amount if rates are present
+            if has_rates and total_amount > 0:
+                story.append(Paragraph(f"<b>Total Amount: €{total_amount:.2f}</b>", self.styles['Normal']))
         
         # Build PDF
         doc.build(story)

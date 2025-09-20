@@ -58,6 +58,10 @@ class TimeTrackerGUI:
         self.project_email_var = tk.StringVar()
         ttk.Entry(project_frame, textvariable=self.project_email_var, width=30).grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(0, 5), pady=(5, 0))
         
+        ttk.Label(project_frame, text="Hourly Rate (€):").grid(row=3, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        self.project_rate_var = tk.StringVar()
+        ttk.Entry(project_frame, textvariable=self.project_rate_var, width=30).grid(row=3, column=1, sticky=(tk.W, tk.E), padx=(0, 5), pady=(5, 0))
+        
         ttk.Button(project_frame, text="Add Project", command=self.add_project).grid(row=0, column=2, padx=(5, 0))
         ttk.Button(project_frame, text="Edit Project", command=self.edit_project).grid(row=1, column=2, padx=(5, 0), pady=(5, 0))
         ttk.Button(project_frame, text="Delete Project", command=self.delete_project).grid(row=2, column=2, padx=(5, 0), pady=(5, 0))
@@ -142,7 +146,7 @@ class TimeTrackerGUI:
     def refresh_projects(self):
         """Refresh the projects combobox"""
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
         self.project_combo['values'] = project_names
         self.filter_combo['values'] = ["All Projects"] + project_names
         
@@ -239,17 +243,31 @@ class TimeTrackerGUI:
         name = self.project_name_var.get().strip()
         description = self.project_desc_var.get().strip()
         email = self.project_email_var.get().strip()
+        rate_str = self.project_rate_var.get().strip()
         
         if not name:
             messagebox.showerror("Error", "Project name is required")
             return
         
+        # Parse rate if provided
+        rate = None
+        if rate_str:
+            try:
+                rate = float(rate_str)
+                if rate < 0:
+                    messagebox.showerror("Error", "Rate must be positive")
+                    return
+            except ValueError:
+                messagebox.showerror("Error", "Rate must be a valid number")
+                return
+        
         try:
-            self.db.add_project(name, description, email)
+            self.db.add_project(name, description, email, rate)
             messagebox.showinfo("Success", f"Project '{name}' added successfully")
             self.project_name_var.set("")
             self.project_desc_var.set("")
             self.project_email_var.set("")
+            self.project_rate_var.set("")
             self.refresh_projects()
         except ValueError as e:
             messagebox.showerror("Error", str(e))
@@ -268,9 +286,9 @@ class TimeTrackerGUI:
             # Get project details
             projects = self.db.get_projects()
             project_details = None
-            for proj_id, name, desc, email in projects:
+            for proj_id, name, desc, email, rate in projects:
                 if proj_id == project_id:
-                    project_details = (proj_id, name, desc, email)
+                    project_details = (proj_id, name, desc, email, rate)
                     break
             
             if project_details:
@@ -719,7 +737,7 @@ class EmailDialog:
 class ProjectEditDialog:
     def __init__(self, parent, db, project_details, refresh_callback):
         self.db = db
-        self.project_id, self.project_name, self.project_desc, self.project_email = project_details
+        self.project_id, self.project_name, self.project_desc, self.project_email, self.project_rate = project_details
         self.refresh_callback = refresh_callback
         
         self.dialog = tk.Toplevel(parent)
@@ -754,12 +772,16 @@ class ProjectEditDialog:
         self.desc_var = tk.StringVar(value=self.project_desc or "")
         ttk.Entry(main_frame, textvariable=self.desc_var, width=50).grid(row=2, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
         
+        ttk.Label(main_frame, text="Hourly Rate (€):").grid(row=3, column=0, sticky=tk.W, pady=(0, 5))
+        self.rate_var = tk.StringVar(value=str(self.project_rate) if self.project_rate is not None else "")
+        ttk.Entry(main_frame, textvariable=self.rate_var, width=50).grid(row=3, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        
         # Project emails section
-        ttk.Label(main_frame, text="Project Emails:", font=("Arial", 10, "bold")).grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
+        ttk.Label(main_frame, text="Project Emails:", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
         
         # Email list frame
         email_frame = ttk.Frame(main_frame)
-        email_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        email_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         email_frame.columnconfigure(0, weight=1)
         
         # Email listbox
@@ -797,7 +819,7 @@ class ProjectEditDialog:
     def load_projects(self):
         """Load all projects into the selector"""
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
         self.project_selector['values'] = project_names
         
         # Set current project as selected
@@ -910,21 +932,31 @@ class ProjectEditDialog:
         """Save project changes"""
         name = self.name_var.get().strip()
         description = self.desc_var.get().strip()
+        rate_str = self.rate_var.get().strip()
         
         if not name:
             messagebox.showerror("Error", "Project name is required")
             return
         
+        # Parse rate if provided
+        rate = None
+        if rate_str:
+            try:
+                rate = float(rate_str)
+                if rate < 0:
+                    messagebox.showerror("Error", "Rate must be positive")
+                    return
+            except ValueError:
+                messagebox.showerror("Error", "Rate must be a valid number")
+                return
+        
         try:
-            self.db.update_project(self.project_id, name, description)
+            self.db.update_project(self.project_id, name, description, rate)
             messagebox.showinfo("Success", "Project updated successfully")
             self.refresh_callback()
             self.dialog.destroy()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update project: {str(e)}")
-        # Refresh the dialog after settings change
-        self.dialog.destroy()
-        EmailDialog(self.dialog.master, self.db, self.pdf_exporter, self.email_exporter)
 
 class EditEntryDialog:
     def __init__(self, parent, db, entry, refresh_callback):
@@ -960,12 +992,12 @@ class EditEntryDialog:
         
         # Populate projects
         projects = self.db.get_projects()
-        project_names = [f"{name} (ID: {id})" for id, name, desc, email in projects]
+        project_names = [f"{name} (ID: {id})" for id, name, desc, email, rate in projects]
         self.project_combo['values'] = project_names
         
         # Set current project as selected
         current_project_id = self.entry[1]
-        for i, (id, name, desc, email) in enumerate(projects):
+        for i, (id, name, desc, email, rate) in enumerate(projects):
             if id == current_project_id:
                 self.project_combo.current(i)
                 break

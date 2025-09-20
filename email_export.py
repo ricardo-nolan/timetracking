@@ -138,6 +138,9 @@ class EmailExporter:
         if not time_entries:
             html += "<p>No time entries found for the selected criteria.</p>"
         else:
+            # Check if any project has a rate set
+            has_rates = any(entry[7] is not None for entry in time_entries)
+            
             # Create table
             html += """
             <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
@@ -148,12 +151,22 @@ class EmailExporter:
                 <th>Start Time</th>
                 <th>End Time</th>
                 <th>Duration</th>
+            """
+            
+            if has_rates:
+                html += """
+                <th>Rate</th>
+                <th>Amount</th>
+                """
+            
+            html += """
             </tr>
             """
             
             total_duration = 0
+            total_amount = 0.0
             for entry in time_entries:
-                entry_id, project_id, proj_name, description, start_time, end_time, duration = entry
+                entry_id, project_id, proj_name, description, start_time, end_time, duration, rate = entry
                 
                 # Format dates and times
                 start_dt = datetime.fromisoformat(start_time)
@@ -198,6 +211,24 @@ class EmailExporter:
                 else:
                     duration_str = "Running"
                 
+                # Calculate rate and amount
+                rate_str = ""
+                amount_str = ""
+                if has_rates:
+                    if rate is not None and rate > 0:
+                        rate_str = f"€{rate:.2f}/h"
+                        if duration is not None and duration > 0:
+                            # Calculate amount based on duration in hours
+                            hours = duration / 60.0  # Convert minutes to hours
+                            amount = hours * rate
+                            total_amount += amount
+                            amount_str = f"€{amount:.2f}"
+                        else:
+                            amount_str = "€0.00"
+                    else:
+                        rate_str = "N/A"
+                        amount_str = "N/A"
+                
                 html += f"""
                 <tr>
                     <td>{date_str}</td>
@@ -206,6 +237,15 @@ class EmailExporter:
                     <td>{start_time_str}</td>
                     <td>{end_time_str}</td>
                     <td>{duration_str}</td>
+                """
+                
+                if has_rates:
+                    html += f"""
+                    <td>{rate_str}</td>
+                    <td>{amount_str}</td>
+                    """
+                
+                html += """
                 </tr>
                 """
             
@@ -220,6 +260,10 @@ class EmailExporter:
                 total_str = f"{total_minutes} minutes"
             
             html += f"<p><strong>Total Time: {total_str}</strong></p>"
+            
+            # Total amount if rates are present
+            if has_rates and total_amount > 0:
+                html += f"<p><strong>Total Amount: €{total_amount:.2f}</strong></p>"
         
         html += """
         </body>
