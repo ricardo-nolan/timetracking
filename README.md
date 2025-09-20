@@ -97,12 +97,15 @@ python -m pytest tests/ --cov=. --cov-report=html
 
 ### Test Coverage
 
-Current test coverage: **49%** overall
+Current test coverage: **50%** overall
 - Database operations: **99%** coverage
 - PDF export: **98%** coverage  
-- Email export: **97%** coverage
-- GUI components: **97%** coverage
-- Integration tests: **89%** coverage
+- Email export: **99%** coverage
+- GUI components: **99%** coverage
+- Integration tests: **99%** coverage
+- Main application: **81%** coverage
+
+**All 42 tests passing (100% pass rate)**
 
 Coverage reports are generated in `htmlcov/index.html`
 
