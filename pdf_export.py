@@ -80,7 +80,7 @@ class PDFExporter:
                     end_time_str = "Running"
                 
                 # Format duration
-                if duration:
+                if duration is not None:
                     # Calculate precise duration from timestamps
                     start_dt = datetime.fromisoformat(start_time)
                     if end_time:
