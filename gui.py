@@ -193,7 +193,7 @@ class TimeTrackerGUI:
         
         # Populate treeview
         for entry in entries:
-            entry_id, proj_id, proj_name, description, start_time, end_time, duration = entry
+            entry_id, proj_id, proj_name, description, start_time, end_time, duration, rate = entry
             
             # Format date
             start_dt = datetime.fromisoformat(start_time)
@@ -378,7 +378,7 @@ class TimeTrackerGUI:
                 entries = self.db.get_time_entries(project_id)
                 if entries:
                     entry = entries[0]  # Most recent entry
-                    entry_id, proj_id, proj_name, description, start_time, end_time, duration_minutes = entry
+                    entry_id, proj_id, proj_name, description, start_time, end_time, duration_minutes, rate = entry
                     if end_time:
                         start_dt = datetime.fromisoformat(start_time)
                         end_dt = datetime.fromisoformat(end_time)
