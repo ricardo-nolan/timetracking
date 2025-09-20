@@ -15,7 +15,9 @@ class EmailExporter:
         self.smtp_port = smtp_port
         self.sender_email = None
         self.sender_password = None
-        self.config_file = "email_config.json"
+        # Use user's home directory for config file
+        home_dir = os.path.expanduser("~")
+        self.config_file = os.path.join(home_dir, "email_config.json")
         self.load_config()
     
     def send_time_report(self, time_entries: List[Tuple],

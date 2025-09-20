@@ -1,10 +1,16 @@
 import sqlite3
 import datetime
+import os
 from typing import List, Optional, Tuple
 
 class TimeTrackerDB:
-    def __init__(self, db_path: str = "time_tracker.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Use user's home directory for database
+            home_dir = os.path.expanduser("~")
+            self.db_path = os.path.join(home_dir, "time_tracker.db")
+        else:
+            self.db_path = db_path
         self.init_database()
     
     def init_database(self):

@@ -11,8 +11,13 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 class PasswordEncryption:
     """Handle password encryption and decryption"""
     
-    def __init__(self, key_file: str = "email_key.key"):
-        self.key_file = key_file
+    def __init__(self, key_file: str = None):
+        if key_file is None:
+            # Use user's home directory for key file
+            home_dir = os.path.expanduser("~")
+            self.key_file = os.path.join(home_dir, "email_key.key")
+        else:
+            self.key_file = key_file
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
     
