@@ -42,10 +42,7 @@ cd timetracking
 
 ### Prerequisites
 - Python 3.7 or higher
-- tkinter support (macOS with Homebrew):
-   ```bash
-   brew install python-tk
-   ```
+- tkinter (included with Python on most systems)
 
 ## Usage
 
@@ -190,7 +187,11 @@ timer/
   - Test connection in Email Settings dialog
 - **PDF export failing**: Ensure you have write permissions in the selected directory
 - **Database errors**: The application automatically handles database migrations
-- **GUI issues**: Ensure tkinter is properly installed (`brew install python-tk` on macOS)
+- **GUI issues**: 
+  - **macOS with Homebrew**: `brew install python-tk` (if tkinter missing)
+  - **Ubuntu/Debian**: `sudo apt-get install python3-tk`
+  - **CentOS/RHEL**: `sudo yum install tkinter` or `sudo dnf install python3-tkinter`
+  - **Windows**: tkinter is included with Python
 
 ## Development
 
