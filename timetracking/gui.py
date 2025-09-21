@@ -836,7 +836,7 @@ class ProjectEditDialog:
         
         # Email management buttons
         email_btn_frame = ttk.Frame(main_frame)
-        email_btn_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        email_btn_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         email_btn_frame.columnconfigure(1, weight=1)
         
         ttk.Label(email_btn_frame, text="New Email:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
@@ -852,7 +852,7 @@ class ProjectEditDialog:
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=6, column=0, columnspan=2, pady=(20, 0))
+        button_frame.grid(row=7, column=0, columnspan=2, pady=(20, 0))
         
         ttk.Button(button_frame, text="Save", command=self.save_project).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.LEFT)
