@@ -1039,7 +1039,7 @@ class EditEntryDialog:
         
         # Set current project as selected
         current_project_id = self.entry[1]
-        for i, (id, name, desc, email, rate) in enumerate(projects):
+        for i, (id, name, desc, email, rate, currency) in enumerate(projects):
             if id == current_project_id:
                 self.project_combo.current(i)
                 break
@@ -1178,17 +1178,16 @@ class EditEntryDialog:
                 messagebox.showerror("Error", "Both end date and time must be provided, or leave both empty")
                 return
             
-            # Get selected project ID
+            # Get selected project ID (default to current if unchanged)
             project_selection = self.project_combo.get()
-            if not project_selection:
-                messagebox.showerror("Error", "Please select a project")
-                return
-            
-            try:
-                project_id = int(project_selection.split("(ID: ")[1].split(")")[0])
-            except (IndexError, ValueError):
-                messagebox.showerror("Error", "Invalid project selection")
-                return
+            if project_selection:
+                try:
+                    project_id = int(project_selection.split("(ID: ")[1].split(")")[0])
+                except (IndexError, ValueError):
+                    messagebox.showerror("Error", "Invalid project selection")
+                    return
+            else:
+                project_id = self.entry[1]
             
             # Update the entry
             description = self.description_var.get().strip() or None

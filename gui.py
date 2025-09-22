@@ -1039,7 +1039,7 @@ class EditEntryDialog:
         
         # Set current project as selected
         current_project_id = self.entry[1]
-        for i, (id, name, desc, email, rate) in enumerate(projects):
+        for i, (id, name, desc, email, rate, currency) in enumerate(projects):
             if id == current_project_id:
                 self.project_combo.current(i)
                 break
