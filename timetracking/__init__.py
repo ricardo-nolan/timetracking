@@ -2,7 +2,7 @@
 Time Tracker - A Python time tracking application with GUI, PDF export, and email functionality
 """
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 __author__ = "Ricardo Nolan"
 __email__ = "ricardo@example.com"
 

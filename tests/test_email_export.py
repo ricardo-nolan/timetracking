@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from email_export import EmailExporter
+from timetracking.email_export import EmailExporter
 
 
 class TestEmailExporter(unittest.TestCase):
@@ -21,10 +21,10 @@ class TestEmailExporter(unittest.TestCase):
         self.temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
         self.temp_config.close()
         
-        # Create sample time entries (id, project_id, project_name, description, start_time, end_time, duration)
+        # Create sample time entries (id, project_id, project_name, description, start_time, end_time, duration, rate, currency)
         self.sample_entries = [
-            (1, 1, "Project A", "Test Task 1", "2024-01-01T09:00:00", "2024-01-01T10:30:00", 90),
-            (2, 1, "Project A", "Test Task 2", "2024-01-01T11:00:00", "2024-01-01T12:00:00", 60),
+            (1, 1, "Project A", "Test Task 1", "2024-01-01T09:00:00", "2024-01-01T10:30:00", 90, 25.0, "EUR"),
+            (2, 1, "Project A", "Test Task 2", "2024-01-01T11:00:00", "2024-01-01T12:00:00", 60, 25.0, "EUR"),
         ]
         
         # Create sample projects
@@ -39,21 +39,25 @@ class TestEmailExporter(unittest.TestCase):
     
     def test_init_defaults(self):
         """Test EmailExporter initialization with defaults"""
-        exporter = EmailExporter()
-        self.assertEqual(exporter.smtp_server, "smtp.gmail.com")
-        self.assertEqual(exporter.smtp_port, 587)
-        self.assertIsNone(exporter.sender_email)
-        self.assertIsNone(exporter.sender_password)
+        # Mock the config loading to avoid loading real config
+        with patch.object(EmailExporter, 'load_config'):
+            exporter = EmailExporter()
+            self.assertEqual(exporter.smtp_server, "smtp.gmail.com")
+            self.assertEqual(exporter.smtp_port, 587)
+            self.assertIsNone(exporter.sender_email)
+            self.assertIsNone(exporter.sender_password)
     
     def test_init_custom(self):
         """Test EmailExporter initialization with custom settings"""
-        exporter = EmailExporter("smtp.example.com", 465)
-        self.assertEqual(exporter.smtp_server, "smtp.example.com")
-        self.assertEqual(exporter.smtp_port, 465)
+        # Mock the config loading to avoid loading real config
+        with patch.object(EmailExporter, 'load_config'):
+            exporter = EmailExporter("smtp.example.com", 465)
+            self.assertEqual(exporter.smtp_server, "smtp.example.com")
+            self.assertEqual(exporter.smtp_port, 465)
     
     def test_load_config(self):
         """Test loading configuration from file"""
-        from password_utils import password_encryption
+        from timetracking.password_utils import password_encryption
         
         # Create test config file with encrypted password
         encrypted_password = password_encryption.encrypt_password('testpass')
@@ -233,7 +237,7 @@ class TestEmailExporter(unittest.TestCase):
         end_time = start_time + timedelta(hours=1, minutes=30, seconds=45)
         
         test_entries = [
-            (1, 1, "Project A", "Test Task", start_time.isoformat(), end_time.isoformat(), 90)
+            (1, 1, "Project A", "Test Task", start_time.isoformat(), end_time.isoformat(), 90, 25.0, "EUR")
         ]
         
         with patch('smtplib.SMTP') as mock_smtp:

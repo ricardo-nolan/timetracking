@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import TimeTrackerDB
+from timetracking.database import TimeTrackerDB
 
 
 class TestTimeTrackerDB(unittest.TestCase):

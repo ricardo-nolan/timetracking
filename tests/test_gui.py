@@ -9,9 +9,9 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import TimeTrackerDB
-from pdf_export import PDFExporter
-from email_export import EmailExporter
+from timetracking.database import TimeTrackerDB
+from timetracking.pdf_export import PDFExporter
+from timetracking.email_export import EmailExporter
 
 
 class TestTimeTrackerGUI(unittest.TestCase):

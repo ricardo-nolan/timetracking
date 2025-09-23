@@ -27,7 +27,7 @@ class TestMainApplication(unittest.TestCase):
         
         # Import and test main function
         try:
-            from main import main
+            from timetracking.main import main
             main()
             
             # Verify GUI was created

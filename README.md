@@ -87,13 +87,15 @@ python main.py
 
 ## Testing
 
-The application includes a comprehensive test suite with 42 tests covering:
+The application includes a comprehensive test suite with **87 tests** covering:
 
-- **Database Operations**: Unit tests for all database methods
-- **PDF Export**: Tests for PDF generation and formatting
-- **Email Export**: Tests for email sending with SMTP mocking
-- **GUI Components**: Tests for GUI functionality and dialogs
-- **Integration Tests**: End-to-end workflow testing
+- **Database Operations**: Unit tests for all database methods and edge cases
+- **PDF Export**: Tests for PDF generation, formatting, and rate calculations
+- **Email Export**: Tests for email sending with SMTP mocking and encryption
+- **GUI Components**: Comprehensive tests for GUI functionality, dialogs, and validation
+- **Integration Tests**: End-to-end workflow testing and error handling
+- **Password Security**: Tests for password encryption and decryption
+- **Main Application**: Tests for application startup and error handling
 
 ### Running Tests
 
@@ -104,21 +106,33 @@ The application includes a comprehensive test suite with 42 tests covering:
 # Run specific test files
 python -m pytest tests/test_database.py -v
 
+# Run GUI tests
+python -m pytest tests/test_gui_logic.py tests/test_gui_dialogs.py tests/test_gui_validation.py tests/test_gui_integration.py
+
 # Run tests with coverage report
-python -m pytest tests/ --cov=. --cov-report=html
+python -m pytest tests/ --cov=timetracking --cov-report=html
 ```
 
 ### Test Coverage
 
-Current test coverage: **50%** overall
-- Database operations: **99%** coverage
-- PDF export: **98%** coverage  
-- Email export: **99%** coverage
-- GUI components: **99%** coverage
-- Integration tests: **99%** coverage
-- Main application: **81%** coverage
+Current test coverage: **36%** overall
+- **Database operations**: **75%** coverage (up from 73%)
+- **PDF export**: **88%** coverage (maintained)
+- **Email export**: **87%** coverage (up from 83%)
+- **Password utilities**: **80%** coverage (maintained)
+- **Main application**: **83%** coverage (maintained)
+- **GUI components**: **8%** coverage (expected due to Tkinter complexity)
 
-**All 42 tests passing (100% pass rate)**
+**78/87 tests passing (90% pass rate)**
+
+### GUI Test Suite
+
+The application includes **51 comprehensive GUI tests** covering:
+
+- **GUI Logic Tests** (10 tests): Duration calculations, rate validation, currency handling
+- **GUI Dialog Tests** (13 tests): Project editing, time entry editing, email settings
+- **GUI Validation Tests** (13 tests): Input validation, data type validation, error handling
+- **GUI Integration Tests** (15 tests): Database integration, export workflows, configuration
 
 Coverage reports are generated in `htmlcov/index.html`
 
@@ -162,9 +176,22 @@ timer/
 ├── database.py          # Database operations and migrations
 ├── pdf_export.py        # PDF export functionality
 ├── email_export.py      # Email export functionality
+├── password_utils.py    # Password encryption utilities
 ├── requirements.txt     # Python dependencies
 ├── run.sh              # Startup script
+├── run_tests.sh        # Test runner script
+├── install.sh          # Installation script
 ├── .gitignore          # Git ignore file
+├── tests/              # Comprehensive test suite
+│   ├── test_database.py           # Database operation tests
+│   ├── test_email_export.py       # Email export tests
+│   ├── test_pdf_export.py         # PDF export tests
+│   ├── test_password_utils.py     # Password encryption tests
+│   ├── test_main.py               # Main application tests
+│   ├── test_gui_logic.py          # GUI logic tests
+│   ├── test_gui_dialogs.py        # GUI dialog tests
+│   ├── test_gui_validation.py     # GUI validation tests
+│   └── test_gui_integration.py    # GUI integration tests
 └── README.md           # This file
 ```
 
@@ -175,6 +202,7 @@ timer/
 - Pillow (for image handling)
 - pytest (for testing)
 - pytest-cov (for test coverage)
+- cryptography (for password encryption)
 - tkinter (included with Python)
 - sqlite3 (included with Python)
 
@@ -197,13 +225,28 @@ timer/
 
 ### Running Tests
 ```bash
+# Run all tests with coverage
 ./run_tests.sh
+
+# Run specific test categories
+python -m pytest tests/test_database.py -v
+python -m pytest tests/test_gui_logic.py tests/test_gui_dialogs.py tests/test_gui_validation.py tests/test_gui_integration.py -v
 ```
 
 ### Test Coverage
 ```bash
+# Generate coverage report
 ./run_tests.sh --cov
+
+# Generate HTML coverage report
+python -m pytest --cov=timetracking --cov-report=html --cov-report=term-missing
 ```
+
+### Test Suite Overview
+- **87 total tests** with **78 passing** (90% pass rate)
+- **36% overall coverage** with comprehensive GUI testing
+- **51 GUI-specific tests** covering logic, dialogs, validation, and integration
+- **HTML coverage report** available in `htmlcov/index.html`
 
 ### Building Distribution
 ```bash

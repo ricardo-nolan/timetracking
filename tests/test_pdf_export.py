@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pdf_export import PDFExporter
+from timetracking.pdf_export import PDFExporter
 
 
 class TestPDFExporter(unittest.TestCase):
@@ -18,11 +18,11 @@ class TestPDFExporter(unittest.TestCase):
         """Set up test data"""
         self.pdf_exporter = PDFExporter()
         
-        # Create sample time entries (id, project_id, project_name, description, start_time, end_time, duration)
+        # Create sample time entries (id, project_id, project_name, description, start_time, end_time, duration, rate, currency)
         self.sample_entries = [
-            (1, 1, "Project A", "Test Task 1", "2024-01-01T09:00:00", "2024-01-01T10:30:00", 90),
-            (2, 1, "Project A", "Test Task 2", "2024-01-01T11:00:00", "2024-01-01T12:00:00", 60),
-            (3, 2, "Project B", "Another Task", "2024-01-02T09:00:00", "2024-01-02T10:00:00", 60),
+            (1, 1, "Project A", "Test Task 1", "2024-01-01T09:00:00", "2024-01-01T10:30:00", 90, 25.0, "EUR"),
+            (2, 1, "Project A", "Test Task 2", "2024-01-01T11:00:00", "2024-01-01T12:00:00", 60, 25.0, "EUR"),
+            (3, 2, "Project B", "Another Task", "2024-01-02T09:00:00", "2024-01-02T10:00:00", 60, 30.0, "USD"),
         ]
         
         # Create sample projects
@@ -76,7 +76,7 @@ class TestPDFExporter(unittest.TestCase):
         """Test PDF export with running (incomplete) entry"""
         # Create entry with no end time
         running_entries = [
-            (1, 1, "Project A", "Running Task", "2024-01-01T09:00:00", None, None),
+            (1, 1, "Project A", "Running Task", "2024-01-01T09:00:00", None, None, 25.0, "EUR"),
         ]
         
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
@@ -114,7 +114,7 @@ class TestPDFExporter(unittest.TestCase):
             end_time = start_time + timedelta(seconds=total_seconds)
             
             test_entries = [
-                (1, 1, "Project A", "Test Task", start_time.isoformat(), end_time.isoformat(), total_seconds // 60)
+                (1, 1, "Project A", "Test Task", start_time.isoformat(), end_time.isoformat(), total_seconds // 60, 25.0, "EUR")
             ]
             
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
