@@ -232,9 +232,12 @@ class TestPasswordEncryptionComprehensive(unittest.TestCase):
         with open(self.temp_key_file.name, 'wb') as f:
             f.write(b"")
         
-        # Should handle empty key file gracefully
-        with self.assertRaises(ValueError):
-            encryption = PasswordEncryption(self.temp_key_file.name)
+        # Should handle empty key file by regenerating a valid key
+        encryption = PasswordEncryption(self.temp_key_file.name)
+        password = "test_password"
+        encrypted = encryption.encrypt_password(password)
+        decrypted = encryption.decrypt_password(encrypted)
+        self.assertEqual(decrypted, password)
     
     def test_encryption_with_short_key_file(self):
         """Test encryption with short key file"""

@@ -13,8 +13,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class TestMainApplication(unittest.TestCase):
     """Test cases for main application"""
     
-    @patch('tkinter.Tk')
-    @patch('gui.TimeTrackerGUI')
+    @patch('timetracking.gui.tk.Tk')
+    @patch('timetracking.gui.TimeTrackerGUI')
     def test_main_application_startup(self, mock_gui, mock_tk):
         """Test main application startup"""
         # Mock tkinter components

@@ -20,16 +20,62 @@ class EmailExporter:
         self.config_file = os.path.join(home_dir, "email_config.json")
         self.load_config()
     
-    def send_time_report(self, time_entries: List[Tuple],
-                        sender_email: str,
-                        sender_password: str,
-                        recipient_email: str,
-                        project_name: Optional[str] = None,
-                        start_date: Optional[date] = None,
-                        end_date: Optional[date] = None,
-                        pdf_path: Optional[str] = None):
-        """Send time report via email"""
-        
+    def send_time_report(self, time_entries: List[Tuple], *args, **kwargs):
+        """Send time report via email.
+        Supports two call signatures for backward compatibility:
+        1) (time_entries, project_name, start_date, end_date, recipient_email, pdf_path=None)
+        2) (time_entries, sender_email, sender_password, recipient_email, project_name=None, start_date=None, end_date=None, pdf_path=None)
+        Uses stored sender_email/password if not provided.
+        """
+
+        # Default values from stored config
+        sender_email = self.sender_email
+        sender_password = self.sender_password
+        recipient_email = None
+        project_name = None
+        start_date = None
+        end_date = None
+        pdf_path = None
+
+        # Parse positional/keyword arguments
+        if len(args) >= 4 and "@" in str(args[3]):
+            # Form 1: project_name, start_date, end_date, recipient_email, [pdf_path]
+            project_name = args[0]
+            start_date = args[1]
+            end_date = args[2]
+            recipient_email = args[3]
+            if len(args) >= 5:
+                pdf_path = args[4]
+        else:
+            # Form 2: sender_email, sender_password, recipient_email, [project_name, start_date, end_date, pdf_path]
+            if len(args) >= 1 and args[0]:
+                sender_email = args[0]
+            if len(args) >= 2 and args[1]:
+                sender_password = args[1]
+            if len(args) >= 3:
+                recipient_email = args[2]
+            if len(args) >= 4:
+                project_name = args[3]
+            if len(args) >= 5:
+                start_date = args[4]
+            if len(args) >= 6:
+                end_date = args[5]
+            if len(args) >= 7:
+                pdf_path = args[6]
+
+        # Keyword fallback
+        sender_email = kwargs.get('sender_email', sender_email)
+        sender_password = kwargs.get('sender_password', sender_password)
+        recipient_email = kwargs.get('recipient_email', recipient_email)
+        project_name = kwargs.get('project_name', project_name)
+        start_date = kwargs.get('start_date', start_date)
+        end_date = kwargs.get('end_date', end_date)
+        pdf_path = kwargs.get('pdf_path', pdf_path)
+
+        if not sender_email or not sender_password or not recipient_email:
+            # Missing required email credentials or recipient
+            return False
+
         # Create message
         msg = MIMEMultipart()
         msg['From'] = sender_email
@@ -125,13 +171,26 @@ class EmailExporter:
         if project_name:
             html += f"<h3>Project: {project_name}</h3>"
         
-        # Date range
+        # Date range (accept str or date)
         if start_date and end_date:
-            date_range = f"From {start_date.strftime('%B %d, %Y')} to {end_date.strftime('%B %d, %Y')}"
+            try:
+                sd = start_date if hasattr(start_date, 'strftime') else date.fromisoformat(str(start_date))
+                ed = end_date if hasattr(end_date, 'strftime') else date.fromisoformat(str(end_date))
+                date_range = f"From {sd.strftime('%B %d, %Y')} to {ed.strftime('%B %d, %Y')}"
+            except Exception:
+                date_range = f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
         elif start_date:
-            date_range = f"From {start_date.strftime('%B %d, %Y')}"
+            try:
+                sd = start_date if hasattr(start_date, 'strftime') else date.fromisoformat(str(start_date))
+                date_range = f"From {sd.strftime('%B %d, %Y')}"
+            except Exception:
+                date_range = f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
         elif end_date:
-            date_range = f"Until {end_date.strftime('%B %d, %Y')}"
+            try:
+                ed = end_date if hasattr(end_date, 'strftime') else date.fromisoformat(str(end_date))
+                date_range = f"Until {ed.strftime('%B %d, %Y')}"
+            except Exception:
+                date_range = f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
         else:
             date_range = f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
         
@@ -220,10 +279,16 @@ class EmailExporter:
                     if rate is not None and rate > 0:
                         currency_symbol = "€" if currency == "EUR" else "$"
                         rate_str = f"{currency_symbol}{rate:.2f}/h"
-                        if duration is not None and duration > 0:
-                            # Calculate amount based on duration in hours
-                            hours = duration / 60.0  # Convert minutes to hours
-                            amount = hours * rate
+                        # Calculate amount using precise seconds when timestamps available
+                        if end_time:
+                            total_seconds = int((datetime.fromisoformat(end_time) - datetime.fromisoformat(start_time)).total_seconds())
+                            hours_float = total_seconds / 3600.0
+                            amount = hours_float * rate
+                            total_amount += amount
+                            amount_str = f"{currency_symbol}{amount:.2f}"
+                        elif duration is not None and duration > 0:
+                            hours_float = duration / 60.0
+                            amount = hours_float * rate
                             total_amount += amount
                             amount_str = f"{currency_symbol}{amount:.2f}"
                         else:

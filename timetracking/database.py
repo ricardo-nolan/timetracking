@@ -111,6 +111,12 @@ class TimeTrackerDB:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
+        # Validate project exists
+        cursor.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,))
+        if cursor.fetchone() is None:
+            conn.close()
+            return None
+
         # Check if there's already a running timer for this project
         cursor.execute(
             "SELECT id FROM time_entries WHERE project_id = ? AND end_time IS NULL",
@@ -226,10 +232,22 @@ class TimeTrackerDB:
             params.append(project_id)
         
         if start_time is not None:
+            # Accept datetime objects too
+            if not isinstance(start_time, str):
+                if isinstance(start_time, datetime.datetime):
+                    start_time = start_time.isoformat()
+                else:
+                    start_time = str(start_time)
             updates.append("start_time = ?")
             params.append(start_time)
         
         if end_time is not None:
+            # Accept datetime objects too
+            if not isinstance(end_time, str):
+                if isinstance(end_time, datetime.datetime):
+                    end_time = end_time.isoformat()
+                else:
+                    end_time = str(end_time)
             updates.append("end_time = ?")
             params.append(end_time)
             
@@ -350,6 +368,24 @@ class TimeTrackerDB:
         conn.commit()
         conn.close()
         return deleted
+
+    def remove_project_email(self, project_id: int, email_id: int) -> bool:
+        """Backward-compatible wrapper to remove a project email.
+        The project_id is accepted for compatibility but not required here.
+        """
+        return self.delete_project_email(email_id)
+
+    def set_primary_email(self, project_id: int, email_id: int) -> bool:
+        """Set a specific email as primary for a project"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE project_emails SET is_primary = 0 WHERE project_id = ?", (project_id,))
+            cursor.execute("UPDATE project_emails SET is_primary = 1 WHERE id = ? AND project_id = ?", (email_id, project_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
     
     def update_project(self, project_id: int, name: str = None, description: str = None, rate: float = None, currency: str = None) -> bool:
         """Update a project"""

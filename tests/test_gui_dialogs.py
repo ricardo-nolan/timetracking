@@ -238,7 +238,12 @@ class TestGUIDialogs(unittest.TestCase):
         ]
         
         for email in invalid_emails:
-            is_valid = "@" in email and "." in email.split("@")[1]
+            parts = email.split("@")
+            is_valid = (
+                len(parts) == 2 and
+                len(parts[0]) > 0 and
+                "." in parts[1]
+            )
             self.assertFalse(is_valid, f"Email '{email}' should be invalid")
     
     def test_project_creation_dialog_logic(self):

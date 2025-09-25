@@ -133,8 +133,15 @@ class TestGUIValidation(unittest.TestCase):
         ]
         
         for email in invalid_emails:
-            # Simple email validation logic
-            is_valid = "@" in email and "." in email.split("@")[1] and len(email.split("@")) == 2
+            # Simple email validation logic: non-empty local and domain with dot
+            parts = email.split("@")
+            domain = parts[1] if len(parts) == 2 else ""
+            is_valid = (
+                len(parts) == 2 and
+                len(parts[0]) > 0 and
+                "." in domain and
+                not domain.startswith(".")
+            )
             self.assertFalse(is_valid, f"Email '{email}' should be invalid")
     
     def test_date_validation_logic(self):
@@ -246,13 +253,8 @@ class TestGUIValidation(unittest.TestCase):
         
         for name in invalid_names:
             # Simulate project name validation logic
-            is_valid = (
-                name and 
-                name.strip() and 
-                len(name.strip()) > 0 and
-                not name.strip().startswith(" ") and
-                not name.strip().endswith(" ")
-            )
+            stripped = name.strip()
+            is_valid = bool(stripped) and not name.startswith(" ") and not name.endswith(" ")
             self.assertFalse(is_valid, f"Project name '{name}' should be invalid")
     
     def test_rate_validation_logic(self):
@@ -402,8 +404,8 @@ class TestGUIValidation(unittest.TestCase):
         ]
         
         for password in invalid_passwords:
-            # Simulate password validation logic
-            is_valid = password and len(password) > 0
+            # Simulate password validation logic (reject whitespace-only)
+            is_valid = bool(password and password.strip())
             self.assertFalse(is_valid, f"Password should be invalid")
     
     def test_duplicate_validation_logic(self):

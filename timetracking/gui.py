@@ -20,6 +20,12 @@ class TimeTrackerGUI:
         self.root = tk.Tk()
         self.root.title("Time Tracker")
         self.root.geometry("900x700")
+        # Ensure tkinter default root is set (helps tests with mocked Tk)
+        try:
+            if getattr(tk, "_default_root", None) is None:
+                tk._default_root = self.root
+        except Exception:
+            pass
         
         # Timer variables
         self.current_timer = None
@@ -871,21 +877,41 @@ class ProjectEditDialog:
                 break
     
     def on_project_change(self, event=None):
-        """Handle project selection change"""
+        """Handle project selection change and refresh all fields"""
         selection = self.project_selector.get()
-        if selection:
+        if not selection:
+            return
+        try:
+            project_id = int(selection.split("(ID: ")[1].split(")")[0])
+        except (IndexError, ValueError):
+            return
+
+        # Find the selected project and update all related fields
+        projects = self.db.get_projects()
+        for proj in projects:
+            # Unpack full tuple: (id, name, desc, email, rate, currency)
             try:
-                project_id = int(selection.split("(ID: ")[1].split(")")[0])
-                projects = self.db.get_projects()
-                for proj_id, name, desc, email in projects:
-                    if proj_id == project_id:
-                        self.project_id = proj_id
-                        self.name_var.set(name)
-                        self.desc_var.set(desc or "")
-                        self.load_emails()
-                        break
-            except (IndexError, ValueError):
-                pass
+                proj_id, name, desc, email, rate, currency = proj
+            except ValueError:
+                # Skip malformed rows
+                continue
+            if proj_id == project_id:
+                self.project_id = proj_id
+                self.project_name = name
+                self.project_desc = desc or ""
+                self.project_email = email
+                self.project_rate = rate
+                self.project_currency = currency or "EUR"
+
+                # Update UI variables
+                self.name_var.set(self.project_name)
+                self.desc_var.set(self.project_desc)
+                self.rate_var.set("" if self.project_rate is None else str(self.project_rate))
+                self.currency_var.set(self.project_currency)
+
+                # Reload emails for the newly selected project
+                self.load_emails()
+                break
     
     def load_emails(self):
         """Load project emails into the listbox"""

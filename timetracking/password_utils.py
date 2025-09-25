@@ -20,18 +20,30 @@ class PasswordEncryption:
             self.key_file = key_file
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
-    
+
     def _get_or_create_key(self) -> bytes:
         """Get existing key or create a new one"""
         if os.path.exists(self.key_file):
             with open(self.key_file, 'rb') as f:
-                return f.read()
-        else:
-            # Create a new key
-            key = Fernet.generate_key()
-            with open(self.key_file, 'wb') as f:
-                f.write(key)
-            return key
+                data = f.read()
+            # Enforce valid Fernet key format
+            if not data:
+                # If file exists but empty (new temp file), generate key
+                key = Fernet.generate_key()
+                with open(self.key_file, 'wb') as f:
+                    f.write(key)
+                return key
+            try:
+                # This will raise if invalid
+                Fernet(data)
+            except Exception as exc:
+                raise ValueError("Invalid Fernet key file") from exc
+            return data
+        # Create a new key (or regenerate due to failure above)
+        key = Fernet.generate_key()
+        with open(self.key_file, 'wb') as f:
+            f.write(key)
+        return key
     
     def encrypt_password(self, password: str) -> str:
         """Encrypt a password"""
@@ -54,8 +66,8 @@ class PasswordEncryption:
             decrypted_bytes = self.cipher.decrypt(encrypted_bytes)
             return decrypted_bytes.decode()
         except Exception:
-            # If decryption fails, return empty string
-            return ""
+            # If decryption fails, raise to surface misuse (e.g., wrong key)
+            raise
     
     def is_encrypted(self, password: str) -> bool:
         """Check if a password appears to be encrypted (base64 format)"""

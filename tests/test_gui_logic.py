@@ -158,8 +158,15 @@ class TestGUILogic(unittest.TestCase):
         ]
         
         for email in invalid_emails:
-            # Simple email validation logic
-            is_valid = "@" in email and "." in email.split("@")[1]
+            # Simple email validation logic: must have non-empty local and domain parts
+            parts = email.split("@")
+            domain = parts[1] if len(parts) == 2 else ""
+            is_valid = (
+                len(parts) == 2 and
+                len(parts[0]) > 0 and
+                "." in domain and
+                not domain.startswith(".")
+            )
             self.assertFalse(is_valid, f"Email '{email}' should be invalid")
     
     def test_date_range_logic(self):
@@ -219,13 +226,17 @@ class TestGUILogic(unittest.TestCase):
         }
         
         for currency, symbol in currency_symbols.items():
-            # Simulate currency symbol logic
+            # Simulate currency symbol logic matching real mapping
             if currency == "EUR":
                 expected_symbol = "€"
             elif currency == "USD":
                 expected_symbol = "$"
+            elif currency == "GBP":
+                expected_symbol = "£"
+            elif currency == "JPY":
+                expected_symbol = "¥"
             else:
-                expected_symbol = "$"  # Default
+                expected_symbol = "$"  # Default fallback
             
             self.assertEqual(expected_symbol, symbol)
     
