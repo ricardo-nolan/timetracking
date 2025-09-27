@@ -688,14 +688,30 @@ class TimeTrackerGUI:
             return False
     
     def _post_upgrade_dialog(self, target_version):
-        """Show dialog after upgrade"""
-        result = messagebox.askyesno(
-            "Restart Required", 
-            f"Update to version {target_version} completed. Restart the application now?"
-        )
+        """Show dialog after upgrade with version verification"""
+        # Wait for PyPI propagation and verify version
+        import time
+        max_wait_time = 60  # 1 minute
+        start_time = time.time()
         
-        if result:
-            self._restart_app()
+        while time.time() - start_time < max_wait_time:
+            current_version = self._get_current_version()
+            if current_version and self._version_tuple(current_version) >= self._version_tuple(target_version):
+                # Version successfully updated
+                result = messagebox.askyesno(
+                    "Restart Required", 
+                    f"Successfully updated to version {current_version}. Restart the application now?"
+                )
+                if result:
+                    self._restart_app()
+                return
+        
+        # Timeout - version not updated
+        messagebox.showerror(
+            "Update Failed", 
+            f"Package was not updated to version {target_version} as it hasn't propagated yet. "
+            f"Please try again in a few minutes or check your internet connection."
+        )
     
     def _restart_app(self):
         """Restart the application"""
@@ -793,12 +809,16 @@ class EmailDialog:
         # Options
         ttk.Label(main_frame, text="Options:").grid(row=4, column=0, sticky=tk.W, pady=(10, 5))
         
-        self.include_pdf = tk.BooleanVar(value=True)
+        self.include_pdf = tk.BooleanVar(value=False)
         ttk.Checkbutton(main_frame, text="Include PDF attachment", variable=self.include_pdf).grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        # Include reflection checkbox (pre-selected)
+        self.include_reflection = tk.BooleanVar(value=True)
+        ttk.Checkbutton(main_frame, text="Include weekly reflection", variable=self.include_reflection).grid(row=6, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=6, column=0, columnspan=2, pady=(20, 0))
+        button_frame.grid(row=7, column=0, columnspan=2, pady=(20, 0))
         
         ttk.Button(button_frame, text="Send", command=self.send_email_report).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="Email Settings", command=self.open_settings).pack(side=tk.LEFT, padx=(0, 5))
@@ -1459,12 +1479,16 @@ class WeeklyReportDialog:
         # Options
         ttk.Label(main_frame, text="Options:").grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
         
-        self.include_pdf = tk.BooleanVar(value=True)
+        self.include_pdf = tk.BooleanVar(value=False)
         ttk.Checkbutton(main_frame, text="Include PDF attachment", variable=self.include_pdf).grid(row=8, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        # Include reflection checkbox (pre-selected)
+        self.include_reflection = tk.BooleanVar(value=True)
+        ttk.Checkbutton(main_frame, text="Include weekly reflection", variable=self.include_reflection).grid(row=9, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=9, column=0, columnspan=2, pady=(20, 0))
+        button_frame.grid(row=10, column=0, columnspan=2, pady=(20, 0))
         
         ttk.Button(button_frame, text="Send Weekly Report", command=self.send_weekly_report).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="Email Settings", command=self.open_settings).pack(side=tk.LEFT, padx=(0, 5))
@@ -1508,11 +1532,13 @@ class WeeklyReportDialog:
             messagebox.showerror("Error", "Please select at least one email or enter a custom email")
             return
         
-        # Get reflection text
-        reflection_content = self.reflection_text.get("1.0", tk.END).strip()
-        if not reflection_content or reflection_content == "• Key achievements this week:\n• Challenges encountered:\n• Lessons learned:\n• Goals for next week:\n• Additional observations:":
-            messagebox.showerror("Error", "Please provide your weekly reflection")
-            return
+        # Get reflection text (only if reflection is enabled)
+        reflection_content = ""
+        if self.include_reflection.get():
+            reflection_content = self.reflection_text.get("1.0", tk.END).strip()
+            if not reflection_content or reflection_content == "• Key achievements this week:\n• Challenges encountered:\n• Lessons learned:\n• Goals for next week:\n• Additional observations:":
+                messagebox.showerror("Error", "Please provide your weekly reflection")
+                return
         
         try:
             # Get time entries for the current week
@@ -1544,16 +1570,21 @@ class WeeklyReportDialog:
             # Combine timesheet and reflection in HTML format
             email_body = f"""
             <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-                <p>Dear Professor,</p>
-                
                 <p>Please find attached my weekly timesheet for the week of {start_of_week.strftime('%B %d, %Y')}.</p>
                 
                 {html_timesheet}
-                
+                """
+            
+            # Add reflection section only if enabled
+            if self.include_reflection.get() and reflection_content:
+                email_body += f"""
                 <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db;'>
                     <h3 style='color: #2c3e50; margin-top: 0; margin-bottom: 15px;'>WEEKLY REFLECTION:</h3>
                     <div style='white-space: pre-line; font-size: 14px;'>{reflection_content}</div>
                 </div>
+                """
+            
+            email_body += f"""
                 
                 <p style='margin-top: 30px;'>Best regards,<br>{getattr(self.email_exporter, 'student_name', 'Student')}</p>
             </div>
