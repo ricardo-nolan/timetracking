@@ -1820,9 +1820,32 @@ class EmailSettingsDialog:
         self.sender_email = tk.StringVar(value=self.email_exporter.sender_email or "")
         ttk.Entry(main_frame, textvariable=self.sender_email, width=40).grid(row=5, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
         
-        ttk.Label(main_frame, text="Password/App Password:").grid(row=6, column=0, sticky=tk.W, pady=(0, 5))
+        # Password field with status indicator
+        password_label_text = "Password/App Password:"
+        if self.email_exporter.sender_password:
+            password_label_text += " (already configured)"
+        ttk.Label(main_frame, text=password_label_text).grid(row=6, column=0, sticky=tk.W, pady=(0, 5))
         self.sender_password = tk.StringVar()
-        ttk.Entry(main_frame, textvariable=self.sender_password, show="*", width=40).grid(row=6, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        password_entry = ttk.Entry(main_frame, textvariable=self.sender_password, show="*", width=40)
+        password_entry.grid(row=6, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        # Add placeholder text if password is already stored
+        if self.email_exporter.sender_password:
+            password_entry.insert(0, "Leave blank to keep current password")
+            password_entry.configure(foreground="gray")
+            
+            def on_password_focus_in(event):
+                if password_entry.get() == "Leave blank to keep current password":
+                    password_entry.delete(0, tk.END)
+                    password_entry.configure(foreground="black")
+            
+            def on_password_focus_out(event):
+                if not password_entry.get():
+                    password_entry.insert(0, "Leave blank to keep current password")
+                    password_entry.configure(foreground="gray")
+            
+            password_entry.bind("<FocusIn>", on_password_focus_in)
+            password_entry.bind("<FocusOut>", on_password_focus_out)
         
         # Student Information
         ttk.Label(main_frame, text="Student Information", font=("Arial", 12, "bold")).grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
@@ -1942,8 +1965,17 @@ Test your connection to verify settings work!"""
             sender_password = self.sender_password.get().strip()
             student_name = self.student_name.get().strip()
             
-            if not all([smtp_server, sender_email, sender_password]):
-                messagebox.showerror("Error", "Please fill in all required fields")
+            # Handle placeholder text
+            if sender_password == "Leave blank to keep current password":
+                sender_password = ""
+            
+            if not all([smtp_server, sender_email]):
+                messagebox.showerror("Error", "Please fill in SMTP server and email address")
+                return
+            
+            # Only require password if it's not already stored
+            if not sender_password and not self.email_exporter.sender_password:
+                messagebox.showerror("Error", "Please enter your password or app password")
                 return
             
             # Update email exporter settings
@@ -1952,7 +1984,9 @@ Test your connection to verify settings work!"""
             
             # Store credentials (password will be encrypted automatically)
             self.email_exporter.sender_email = sender_email
-            self.email_exporter.sender_password = sender_password
+            # Only update password if a new one is provided
+            if sender_password:
+                self.email_exporter.sender_password = sender_password
             
             # Store student name
             self.email_exporter.student_name = student_name
