@@ -1538,12 +1538,15 @@ class WeeklyReportDialog:
             # Generate timesheet content
             timesheet_content = self.generate_timesheet_content(weekly_entries)
             
-            # Combine timesheet and reflection
+            # Generate HTML formatted email
+            html_timesheet = self.generate_html_timesheet(weekly_entries)
+            
+            # Combine timesheet and reflection in HTML format
             email_body = f"""Dear Professor,
 
 Please find attached my weekly timesheet for the week of {start_of_week.strftime('%B %d, %Y')}.
 
-{timesheet_content}
+{html_timesheet}
 
 WEEKLY REFLECTION:
 {reflection_content}
@@ -1609,6 +1612,44 @@ Student"""
         content += f"Total Hours: {total_hours:.1f}\n"
         return content
     
+    def generate_html_timesheet(self, entries):
+        """Generate HTML formatted timesheet for email"""
+        html = "<h3>TIMESHEET SUMMARY:</h3>\n<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>\n"
+        html += "<tr style='background-color: #f2f2f2;'><th>Date</th><th>Project</th><th>Description</th><th>Time</th><th>Duration</th></tr>\n"
+        
+        total_hours = 0
+        for entry in entries:
+            entry_id, project_id, project_name, description, start_time, end_time, duration, rate, currency = entry
+            
+            # Format dates and times
+            start_dt = datetime.fromisoformat(start_time)
+            date_str = start_dt.strftime('%Y-%m-%d')
+            start_time_str = start_dt.strftime('%H:%M')
+            
+            if end_time:
+                end_dt = datetime.fromisoformat(end_time)
+                end_time_str = end_dt.strftime('%H:%M')
+            else:
+                end_time_str = "Running"
+            
+            # Format duration
+            if duration is not None:
+                hours = duration // 60
+                minutes = duration % 60
+                if hours > 0:
+                    duration_str = f"{hours}h {minutes}m"
+                else:
+                    duration_str = f"{minutes}m"
+                total_hours += duration / 60.0
+            else:
+                duration_str = "Running"
+            
+            html += f"<tr><td>{date_str}</td><td>{project_name}</td><td>{description or 'N/A'}</td><td>{start_time_str} - {end_time_str}</td><td>{duration_str}</td></tr>\n"
+        
+        html += f"<tr style='background-color: #e6f3ff; font-weight: bold;'><td colspan='4'>Total Hours</td><td>{total_hours:.1f}</td></tr>\n"
+        html += "</table>"
+        return html
+    
     def send_custom_email(self, recipients, subject, body, time_entries=None):
         """Send custom email with optional PDF attachment"""
         try:
@@ -1626,8 +1667,8 @@ Student"""
             msg['To'] = ', '.join(recipients)
             msg['Subject'] = subject
             
-            # Add body
-            msg.attach(MIMEText(body, 'plain'))
+            # Add body as HTML
+            msg.attach(MIMEText(body, 'html'))
             
             # Add PDF attachment if requested and entries provided
             if time_entries and self.include_pdf.get():
