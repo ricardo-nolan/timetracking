@@ -1555,7 +1555,7 @@ class WeeklyReportDialog:
                     <div style='white-space: pre-line; font-size: 14px;'>{reflection_content}</div>
                 </div>
                 
-                <p style='margin-top: 30px;'>Best regards,<br>Student</p>
+                <p style='margin-top: 30px;'>Best regards,<br>{getattr(self.email_exporter, 'student_name', 'Student')}</p>
             </div>
             """
             
@@ -1824,6 +1824,13 @@ class EmailSettingsDialog:
         self.sender_password = tk.StringVar()
         ttk.Entry(main_frame, textvariable=self.sender_password, show="*", width=40).grid(row=6, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
         
+        # Student Information
+        ttk.Label(main_frame, text="Student Information", font=("Arial", 12, "bold")).grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
+        
+        ttk.Label(main_frame, text="Student Name:").grid(row=8, column=0, sticky=tk.W, pady=(0, 5))
+        self.student_name = tk.StringVar(value=getattr(self.email_exporter, 'student_name', '') or "")
+        ttk.Entry(main_frame, textvariable=self.student_name, width=40).grid(row=8, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        
         # Help text
         help_text = """Common SMTP Settings:
 • Gmail: smtp.gmail.com, port 587 (requires App Password)
@@ -1844,11 +1851,11 @@ OTHER PROVIDERS:
 
 Test your connection to verify settings work!"""
         
-        ttk.Label(main_frame, text=help_text, font=("Arial", 9), justify=tk.LEFT).grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(20, 0))
+        ttk.Label(main_frame, text=help_text, font=("Arial", 9), justify=tk.LEFT).grid(row=9, column=0, columnspan=2, sticky=tk.W, pady=(20, 0))
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=8, column=0, columnspan=2, pady=(30, 20), sticky=(tk.W, tk.E))
+        button_frame.grid(row=10, column=0, columnspan=2, pady=(30, 20), sticky=(tk.W, tk.E))
         
         ttk.Button(button_frame, text="Test Connection", command=self.test_connection, width=15).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Save Settings", command=self.save_settings, width=15).pack(side=tk.LEFT, padx=(0, 10))
@@ -1933,9 +1940,10 @@ Test your connection to verify settings work!"""
             smtp_port = int(self.smtp_port.get().strip())
             sender_email = self.sender_email.get().strip()
             sender_password = self.sender_password.get().strip()
+            student_name = self.student_name.get().strip()
             
             if not all([smtp_server, sender_email, sender_password]):
-                messagebox.showerror("Error", "Please fill in all fields")
+                messagebox.showerror("Error", "Please fill in all required fields")
                 return
             
             # Update email exporter settings
@@ -1945,6 +1953,9 @@ Test your connection to verify settings work!"""
             # Store credentials (password will be encrypted automatically)
             self.email_exporter.sender_email = sender_email
             self.email_exporter.sender_password = sender_password
+            
+            # Store student name
+            self.email_exporter.student_name = student_name
             
             # Save to config file
             self.email_exporter.save_config()

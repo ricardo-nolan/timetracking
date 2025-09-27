@@ -15,6 +15,7 @@ class EmailExporter:
         self.smtp_port = smtp_port
         self.sender_email = None
         self.sender_password = None
+        self.student_name = None
         # Use user's home directory for config file
         home_dir = os.path.expanduser("~")
         self.config_file = os.path.join(home_dir, "email_config.json")
@@ -126,6 +127,7 @@ class EmailExporter:
                     self.smtp_server = config.get('smtp_server', 'smtp.gmail.com')
                     self.smtp_port = config.get('smtp_port', 587)
                     self.sender_email = config.get('sender_email')
+                    self.student_name = config.get('student_name')
                     
                     # Decrypt password if it's encrypted
                     encrypted_password = config.get('sender_password')
@@ -148,7 +150,8 @@ class EmailExporter:
                 'smtp_server': self.smtp_server,
                 'smtp_port': self.smtp_port,
                 'sender_email': self.sender_email,
-                'sender_password': encrypted_password
+                'sender_password': encrypted_password,
+                'student_name': self.student_name
             }
             with open(self.config_file, 'w') as f:
                 json.dump(config, f)
