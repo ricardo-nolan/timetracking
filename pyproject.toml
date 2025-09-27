@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "timetracking"
-version = "1.0.50"
+version = "1.0.51"
 description = "A Python time tracking application with GUI, PDF export, and email functionality"
 readme = "README.md"
 license = {text = "MIT"}

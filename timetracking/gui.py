@@ -688,29 +688,38 @@ class TimeTrackerGUI:
             return False
     
     def _post_upgrade_dialog(self, target_version):
-        """Show dialog after upgrade with version verification"""
-        # Wait for PyPI propagation and verify version
+        """Show dialog after upgrade with retry logic"""
         import time
         max_wait_time = 60  # 1 minute
         start_time = time.time()
+        attempt = 0
         
         while time.time() - start_time < max_wait_time:
-            current_version = self._get_current_version()
-            if current_version and self._version_tuple(current_version) >= self._version_tuple(target_version):
-                # Version successfully updated
-                result = messagebox.askyesno(
-                    "Restart Required", 
-                    f"Successfully updated to version {current_version}. Restart the application now?"
-                )
-                if result:
-                    self._restart_app()
-                return
+            attempt += 1
+            
+            # Try to upgrade
+            if self._attempt_upgrade(target_version):
+                # Check if version was actually updated
+                time.sleep(2)  # Brief pause for installation to complete
+                current_version = self._get_current_version()
+                if current_version and self._version_tuple(current_version) >= self._version_tuple(target_version):
+                    # Version successfully updated
+                    result = messagebox.askyesno(
+                        "Restart Required", 
+                        f"Successfully updated to version {current_version} (attempt {attempt}). Restart the application now?"
+                    )
+                    if result:
+                        self._restart_app()
+                    return
+            
+            # Wait a bit before next attempt
+            time.sleep(5)
         
-        # Timeout - version not updated
+        # Timeout - version not updated after all attempts
         messagebox.showerror(
             "Update Failed", 
-            f"Package was not updated to version {target_version} as it hasn't propagated yet. "
-            f"Please try again in a few minutes or check your internet connection."
+            f"Package was not updated to version {target_version} after {attempt} attempts. "
+            f"PyPI may not have propagated yet. Please try again in a few minutes."
         )
     
     def _restart_app(self):
