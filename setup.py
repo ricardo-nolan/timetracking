@@ -18,7 +18,7 @@ def read_requirements():
 
 setup(
     name="timetracking",
-    version="1.0.6",
+    version="1.0.38",
     author="Ricardo Nolan",
     author_email="ricardo@example.com",
     description="A Python time tracking application with GUI, PDF export, and email functionality",
