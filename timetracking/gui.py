@@ -1551,12 +1551,13 @@ WEEKLY REFLECTION:
 Best regards,
 Student"""
             
-            # Send email
-            success = self.email_exporter.send_email(
+            # Send email using the existing send_time_report method
+            # We need to create a custom email with the reflection content
+            success = self.send_custom_email(
                 selected_emails,
                 subject,
                 email_body,
-                include_pdf=self.include_pdf.get()
+                weekly_entries if self.include_pdf.get() else None
             )
             
             if success:
@@ -1607,6 +1608,69 @@ Student"""
         
         content += f"Total Hours: {total_hours:.1f}\n"
         return content
+    
+    def send_custom_email(self, recipients, subject, body, time_entries=None):
+        """Send custom email with optional PDF attachment"""
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.base import MIMEBase
+            from email import encoders
+            import tempfile
+            import os
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = self.email_exporter.sender_email
+            msg['To'] = ', '.join(recipients)
+            msg['Subject'] = subject
+            
+            # Add body
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Add PDF attachment if requested and entries provided
+            if time_entries and self.include_pdf.get():
+                try:
+                    # Create temporary PDF
+                    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+                        pdf_path = temp_file.name
+                    
+                    # Generate PDF
+                    self.pdf_exporter.export_time_report(time_entries, pdf_path)
+                    
+                    # Attach PDF
+                    with open(pdf_path, "rb") as attachment:
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(attachment.read())
+                    
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        'Content-Disposition',
+                        f'attachment; filename= weekly_report.pdf'
+                    )
+                    msg.attach(part)
+                    
+                    # Clean up temp file
+                    os.unlink(pdf_path)
+                    
+                except Exception as e:
+                    print(f"Warning: Could not attach PDF: {e}")
+            
+            # Send email
+            server = smtplib.SMTP(self.email_exporter.smtp_server, self.email_exporter.smtp_port)
+            server.starttls()
+            server.login(self.email_exporter.sender_email, self.email_exporter.sender_password)
+            
+            text = msg.as_string()
+            server.sendmail(self.email_exporter.sender_email, recipients, text)
+            server.quit()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+            return False
 
 class EmailSettingsDialog:
     def __init__(self, parent, email_exporter):
