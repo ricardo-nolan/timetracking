@@ -1442,11 +1442,11 @@ class WeeklyReportDialog:
         
         ttk.Label(main_frame, text="Please reflect on your week using the template below:", font=("Arial", 9)).grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
         
-        # Reflection text area
+        # Reflection text area - make it bigger
         reflection_frame = ttk.Frame(main_frame)
         reflection_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         
-        self.reflection_text = tk.Text(reflection_frame, height=8, width=70, wrap=tk.WORD)
+        self.reflection_text = tk.Text(reflection_frame, height=12, width=80, wrap=tk.WORD)
         scrollbar = ttk.Scrollbar(reflection_frame, orient=tk.VERTICAL, command=self.reflection_text.yview)
         self.reflection_text.configure(yscrollcommand=scrollbar.set)
         
@@ -1542,17 +1542,22 @@ class WeeklyReportDialog:
             html_timesheet = self.generate_html_timesheet(weekly_entries)
             
             # Combine timesheet and reflection in HTML format
-            email_body = f"""Dear Professor,
-
-Please find attached my weekly timesheet for the week of {start_of_week.strftime('%B %d, %Y')}.
-
-{html_timesheet}
-
-WEEKLY REFLECTION:
-{reflection_content}
-
-Best regards,
-Student"""
+            email_body = f"""
+            <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                <p>Dear Professor,</p>
+                
+                <p>Please find attached my weekly timesheet for the week of {start_of_week.strftime('%B %d, %Y')}.</p>
+                
+                {html_timesheet}
+                
+                <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db;'>
+                    <h3 style='color: #2c3e50; margin-top: 0; margin-bottom: 15px;'>WEEKLY REFLECTION:</h3>
+                    <div style='white-space: pre-line; font-size: 14px;'>{reflection_content}</div>
+                </div>
+                
+                <p style='margin-top: 30px;'>Best regards,<br>Student</p>
+            </div>
+            """
             
             # Send email using the existing send_time_report method
             # We need to create a custom email with the reflection content
@@ -1614,8 +1619,20 @@ Student"""
     
     def generate_html_timesheet(self, entries):
         """Generate HTML formatted timesheet for email"""
-        html = "<h3>TIMESHEET SUMMARY:</h3>\n<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>\n"
-        html += "<tr style='background-color: #f2f2f2;'><th>Date</th><th>Project</th><th>Description</th><th>Time</th><th>Duration</th></tr>\n"
+        html = """
+        <h3 style='color: #2c3e50; margin-bottom: 15px;'>TIMESHEET SUMMARY:</h3>
+        <table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;'>
+        <thead>
+            <tr style='background-color: #34495e; color: white; font-weight: bold;'>
+                <th style='padding: 10px; text-align: left;'>Date</th>
+                <th style='padding: 10px; text-align: left;'>Project</th>
+                <th style='padding: 10px; text-align: left;'>Description</th>
+                <th style='padding: 10px; text-align: left;'>Time</th>
+                <th style='padding: 10px; text-align: left;'>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+        """
         
         total_hours = 0
         for entry in entries:
@@ -1644,10 +1661,26 @@ Student"""
             else:
                 duration_str = "Running"
             
-            html += f"<tr><td>{date_str}</td><td>{project_name}</td><td>{description or 'N/A'}</td><td>{start_time_str} - {end_time_str}</td><td>{duration_str}</td></tr>\n"
+            html += f"""
+            <tr style='background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;'>
+                <td style='padding: 10px; border-right: 1px solid #dee2e6;'>{date_str}</td>
+                <td style='padding: 10px; border-right: 1px solid #dee2e6; font-weight: bold; color: #2c3e50;'>{project_name}</td>
+                <td style='padding: 10px; border-right: 1px solid #dee2e6;'>{description or 'N/A'}</td>
+                <td style='padding: 10px; border-right: 1px solid #dee2e6;'>{start_time_str} - {end_time_str}</td>
+                <td style='padding: 10px; font-weight: bold; color: #27ae60;'>{duration_str}</td>
+            </tr>
+            """
         
-        html += f"<tr style='background-color: #e6f3ff; font-weight: bold;'><td colspan='4'>Total Hours</td><td>{total_hours:.1f}</td></tr>\n"
-        html += "</table>"
+        html += f"""
+        </tbody>
+        <tfoot>
+            <tr style='background-color: #3498db; color: white; font-weight: bold; font-size: 16px;'>
+                <td colspan='4' style='padding: 15px; text-align: right;'>Total Hours:</td>
+                <td style='padding: 15px; text-align: center; font-size: 18px;'>{total_hours:.1f}</td>
+            </tr>
+        </tfoot>
+        </table>
+        """
         return html
     
     def send_custom_email(self, recipients, subject, body, time_entries=None):
@@ -1667,8 +1700,9 @@ Student"""
             msg['To'] = ', '.join(recipients)
             msg['Subject'] = subject
             
-            # Add body as HTML
-            msg.attach(MIMEText(body, 'html'))
+            # Add body as HTML with proper content type
+            html_body = MIMEText(body, 'html', 'utf-8')
+            msg.attach(html_body)
             
             # Add PDF attachment if requested and entries provided
             if time_entries and self.include_pdf.get():
