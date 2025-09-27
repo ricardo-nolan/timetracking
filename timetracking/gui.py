@@ -558,9 +558,9 @@ class TimeTrackerGUI:
             except:
                 pass
         
-        # Create email dialog
-        email_dialog = EmailDialog(self.root, self.db, self.pdf_exporter, self.email_exporter, project_emails)
-        self.root.wait_window(email_dialog.dialog)
+        # Create weekly report dialog with reflection
+        weekly_dialog = WeeklyReportDialog(self.root, self.db, self.pdf_exporter, self.email_exporter, project_emails)
+        self.root.wait_window(weekly_dialog.dialog)
     
     def edit_entry(self):
         """Edit selected time entry"""
@@ -1357,6 +1357,256 @@ class EditEntryDialog:
             messagebox.showerror("Error", f"Invalid date/time format: {e}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update entry: {e}")
+
+class WeeklyReportDialog:
+    def __init__(self, parent, db, pdf_exporter, email_exporter, project_emails=None):
+        self.db = db
+        self.pdf_exporter = pdf_exporter
+        self.email_exporter = email_exporter
+        self.project_emails = project_emails or []
+        
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Weekly Report with Reflection")
+        self.dialog.geometry("800x700")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        self.setup_ui()
+    
+    def setup_ui(self):
+        """Setup weekly report dialog UI"""
+        main_frame = ttk.Frame(self.dialog, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Check if email settings are configured
+        if not self.email_exporter.sender_email or not self.email_exporter.sender_password:
+            ttk.Label(main_frame, text="Email settings not configured!", font=("Arial", 12, "bold"), foreground="red").grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+            ttk.Label(main_frame, text="Please configure your email settings first.").grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 20))
+            
+            button_frame = ttk.Frame(main_frame)
+            button_frame.grid(row=2, column=0, columnspan=2, pady=(20, 0))
+            ttk.Button(button_frame, text="Configure Email Settings", command=self.open_settings).pack(side=tk.LEFT, padx=(0, 5))
+            ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.LEFT)
+            return
+        
+        # Email settings are configured
+        ttk.Label(main_frame, text=f"From: {self.email_exporter.sender_email}", font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+        
+        # Recipient emails section
+        ttk.Label(main_frame, text="Recipient Emails:", font=("Arial", 10, "bold")).grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        # Email selection frame with checkboxes
+        email_frame = ttk.Frame(main_frame)
+        email_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # Create checkboxes for each project email
+        self.email_checkboxes = {}
+        self.email_vars = {}
+        
+        if self.project_emails:
+            ttk.Label(email_frame, text="Select recipients:", font=("Arial", 9, "bold")).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+            
+            for i, (email_id, email, is_primary) in enumerate(self.project_emails):
+                # Create checkbox variable
+                var = tk.BooleanVar(value=is_primary)  # Pre-select primary emails
+                self.email_vars[email_id] = var
+                
+                # Create checkbox with label
+                checkbox = ttk.Checkbutton(
+                    email_frame, 
+                    text=f"{email} {'(Primary)' if is_primary else ''}",
+                    variable=var
+                )
+                checkbox.grid(row=i+1, column=0, sticky=tk.W, pady=2)
+                self.email_checkboxes[email_id] = checkbox
+        else:
+            ttk.Label(email_frame, text="No project emails configured", font=("Arial", 9), foreground="gray").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        
+        # Custom email entry
+        ttk.Label(main_frame, text="Custom Email:").grid(row=3, column=0, sticky=tk.W, pady=(10, 5))
+        self.custom_email = tk.StringVar()
+        ttk.Entry(main_frame, textvariable=self.custom_email, width=40).grid(row=3, column=1, sticky=(tk.W, tk.E), pady=(10, 5))
+        
+        # Weekly Reflection Section
+        ttk.Label(main_frame, text="Weekly Reflection (MSE Requirement):", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
+        
+        # Reflection template
+        reflection_template = """• Key achievements this week:
+• Challenges encountered:
+• Lessons learned:
+• Goals for next week:
+• Additional observations:"""
+        
+        ttk.Label(main_frame, text="Please reflect on your week using the template below:", font=("Arial", 9)).grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        # Reflection text area
+        reflection_frame = ttk.Frame(main_frame)
+        reflection_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        
+        self.reflection_text = tk.Text(reflection_frame, height=8, width=70, wrap=tk.WORD)
+        scrollbar = ttk.Scrollbar(reflection_frame, orient=tk.VERTICAL, command=self.reflection_text.yview)
+        self.reflection_text.configure(yscrollcommand=scrollbar.set)
+        
+        self.reflection_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Insert template
+        self.reflection_text.insert(tk.END, reflection_template)
+        
+        # Options
+        ttk.Label(main_frame, text="Options:").grid(row=7, column=0, sticky=tk.W, pady=(10, 5))
+        
+        self.include_pdf = tk.BooleanVar(value=True)
+        ttk.Checkbutton(main_frame, text="Include PDF attachment", variable=self.include_pdf).grid(row=8, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=9, column=0, columnspan=2, pady=(20, 0))
+        
+        ttk.Button(button_frame, text="Send Weekly Report", command=self.send_weekly_report).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="Email Settings", command=self.open_settings).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.LEFT)
+    
+    def open_settings(self):
+        """Open email settings dialog"""
+        settings_dialog = EmailSettingsDialog(self.dialog, self.email_exporter)
+        self.dialog.wait_window(settings_dialog.dialog)
+        
+        # After settings dialog closes, refresh the dialog
+        self.refresh_dialog()
+    
+    def refresh_dialog(self):
+        """Refresh the dialog after settings are updated"""
+        # Reload email configuration
+        self.email_exporter.load_config()
+        
+        # Destroy and recreate the dialog
+        self.dialog.destroy()
+        # Note: This will require the parent to recreate the dialog
+    
+    def send_weekly_report(self):
+        """Send the weekly report with reflection"""
+        # Get selected emails from checkboxes
+        selected_emails = []
+        for email_id, var in self.email_vars.items():
+            if var.get():  # Checkbox is selected
+                # Find the email address for this ID
+                for proj_email_id, email, is_primary in self.project_emails:
+                    if proj_email_id == email_id:
+                        selected_emails.append(email)
+                        break
+        
+        # Get custom email
+        custom_email = self.custom_email.get().strip()
+        if custom_email:
+            selected_emails.append(custom_email)
+        
+        if not selected_emails:
+            messagebox.showerror("Error", "Please select at least one email or enter a custom email")
+            return
+        
+        # Get reflection text
+        reflection_content = self.reflection_text.get("1.0", tk.END).strip()
+        if not reflection_content or reflection_content == "• Key achievements this week:\n• Challenges encountered:\n• Lessons learned:\n• Goals for next week:\n• Additional observations:":
+            messagebox.showerror("Error", "Please provide your weekly reflection")
+            return
+        
+        try:
+            # Get time entries for the current week
+            today = datetime.now().date()
+            start_of_week = today - timedelta(days=today.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            
+            # Get entries for the week
+            entries = self.db.get_time_entries()
+            weekly_entries = []
+            for entry in entries:
+                entry_date = datetime.fromisoformat(entry[4]).date()  # start_time
+                if start_of_week <= entry_date <= end_of_week:
+                    weekly_entries.append(entry)
+            
+            if not weekly_entries:
+                messagebox.showwarning("Warning", "No time entries found for this week")
+                return
+            
+            # Create email content with reflection
+            subject = f"Weekly Report - Week of {start_of_week.strftime('%B %d, %Y')}"
+            
+            # Generate timesheet content
+            timesheet_content = self.generate_timesheet_content(weekly_entries)
+            
+            # Combine timesheet and reflection
+            email_body = f"""Dear Professor,
+
+Please find attached my weekly timesheet for the week of {start_of_week.strftime('%B %d, %Y')}.
+
+{timesheet_content}
+
+WEEKLY REFLECTION:
+{reflection_content}
+
+Best regards,
+Student"""
+            
+            # Send email
+            success = self.email_exporter.send_email(
+                selected_emails,
+                subject,
+                email_body,
+                include_pdf=self.include_pdf.get()
+            )
+            
+            if success:
+                messagebox.showinfo("Success", "Weekly report sent successfully!")
+                self.dialog.destroy()
+            else:
+                messagebox.showerror("Error", "Failed to send weekly report")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send weekly report: {str(e)}")
+    
+    def generate_timesheet_content(self, entries):
+        """Generate timesheet content for email"""
+        content = "TIMESHEET SUMMARY:\n\n"
+        
+        total_hours = 0
+        for entry in entries:
+            entry_id, project_id, project_name, description, start_time, end_time, duration, rate, currency = entry
+            
+            # Format dates and times
+            start_dt = datetime.fromisoformat(start_time)
+            date_str = start_dt.strftime('%Y-%m-%d')
+            start_time_str = start_dt.strftime('%H:%M')
+            
+            if end_time:
+                end_dt = datetime.fromisoformat(end_time)
+                end_time_str = end_dt.strftime('%H:%M')
+            else:
+                end_time_str = "Running"
+            
+            # Format duration
+            if duration is not None:
+                hours = duration // 60
+                minutes = duration % 60
+                if hours > 0:
+                    duration_str = f"{hours}h {minutes}m"
+                else:
+                    duration_str = f"{minutes}m"
+                total_hours += duration / 60.0
+            else:
+                duration_str = "Running"
+            
+            content += f"Date: {date_str}\n"
+            content += f"Project: {project_name}\n"
+            content += f"Description: {description or 'N/A'}\n"
+            content += f"Time: {start_time_str} - {end_time_str}\n"
+            content += f"Duration: {duration_str}\n\n"
+        
+        content += f"Total Hours: {total_hours:.1f}\n"
+        return content
 
 class EmailSettingsDialog:
     def __init__(self, parent, email_exporter):
