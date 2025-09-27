@@ -29,6 +29,26 @@ class PDFExporter:
             spaceAfter=12,
             alignment=1  # Center alignment
         ))
+        
+        # Add styles for table cells with text wrapping
+        self.styles.add(ParagraphStyle(
+            name='TableCell',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            leading=11,
+            alignment=0,  # Left alignment
+            leftIndent=2,
+            rightIndent=2
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='TableHeader',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            leading=12,
+            alignment=1,  # Center alignment
+            fontName='Helvetica-Bold'
+        ))
     
     def export_time_report(self, time_entries: List[Tuple], 
                           output_path: str,
@@ -61,13 +81,23 @@ class PDFExporter:
         if not time_entries:
             story.append(Paragraph("No time entries found for the selected criteria.", self.styles['Normal']))
         else:
-            # Create table data
-            table_data = [['Date', 'Project', 'Description', 'Start Time', 'End Time', 'Duration']]
+            # Create table data with Paragraph objects for text wrapping
+            table_data = [[
+                Paragraph('Date', self.styles['TableHeader']),
+                Paragraph('Project', self.styles['TableHeader']),
+                Paragraph('Description', self.styles['TableHeader']),
+                Paragraph('Start Time', self.styles['TableHeader']),
+                Paragraph('End Time', self.styles['TableHeader']),
+                Paragraph('Duration', self.styles['TableHeader'])
+            ]]
             
             # Check if any project has a rate set
             has_rates = any(entry[7] is not None for entry in time_entries)
             if has_rates:
-                table_data[0].extend(['Rate', 'Amount'])
+                table_data[0].extend([
+                    Paragraph('Rate', self.styles['TableHeader']),
+                    Paragraph('Amount', self.styles['TableHeader'])
+                ])
             
             total_duration = 0
             total_amount = 0.0
@@ -137,36 +167,45 @@ class PDFExporter:
                         amount_str = "N/A"
                 
                 row_data = [
-                    date_str,
-                    project_name,
-                    description or "",
-                    start_time_str,
-                    end_time_str,
-                    duration_str
+                    Paragraph(date_str, self.styles['TableCell']),
+                    Paragraph(project_name, self.styles['TableCell']),
+                    Paragraph(description or "", self.styles['TableCell']),
+                    Paragraph(start_time_str, self.styles['TableCell']),
+                    Paragraph(end_time_str, self.styles['TableCell']),
+                    Paragraph(duration_str, self.styles['TableCell'])
                 ]
                 
                 if has_rates:
-                    row_data.extend([rate_str, amount_str])
+                    row_data.extend([
+                        Paragraph(rate_str, self.styles['TableCell']),
+                        Paragraph(amount_str, self.styles['TableCell'])
+                    ])
                 
                 table_data.append(row_data)
             
-            # Create table with dynamic column widths
+            # Create table with dynamic column widths optimized for text wrapping
             if has_rates:
-                col_widths = [1*inch, 1.2*inch, 2*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch]
+                col_widths = [1*inch, 1.5*inch, 2.5*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch]
             else:
-                col_widths = [1*inch, 1.2*inch, 2*inch, 0.8*inch, 0.8*inch, 0.8*inch]
+                col_widths = [1*inch, 1.5*inch, 2.5*inch, 0.8*inch, 0.8*inch, 0.8*inch]
             
-            table = Table(table_data, colWidths=col_widths)
+            table = Table(table_data, colWidths=col_widths, repeatRows=1)
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
             ]))
             
             story.append(table)

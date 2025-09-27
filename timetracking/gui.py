@@ -6,6 +6,11 @@ import threading
 import time
 import os
 import sqlite3
+import subprocess
+import sys
+import shutil
+import requests
+import json
 
 from .database import TimeTrackerDB
 from .pdf_export import PDFExporter
@@ -160,6 +165,7 @@ class TimeTrackerGUI:
         ttk.Button(export_frame, text="Email Settings", command=self.email_settings).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(export_frame, text="Edit Entry", command=self.edit_entry).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(export_frame, text="Delete Entry", command=self.delete_entry).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(export_frame, text="Check for Updates", command=self.check_for_updates).pack(side=tk.LEFT, padx=(0, 5))
     
     def refresh_projects(self):
         """Refresh the projects combobox"""
@@ -592,6 +598,121 @@ class TimeTrackerGUI:
                 self.refresh_entries()
             else:
                 messagebox.showerror("Error", "Failed to delete entry")
+    
+    def check_for_updates(self):
+        """Check for updates from PyPI"""
+        try:
+            # Get current version
+            current_version = self._get_current_version()
+            if not current_version:
+                messagebox.showerror("Error", "Could not determine current version")
+                return
+            
+            # Get latest version from PyPI
+            latest_version = self._get_latest_version()
+            if not latest_version:
+                messagebox.showerror("Error", "Could not check for updates. Please check your internet connection.")
+                return
+            
+            # Compare versions
+            if self._version_tuple(current_version) < self._version_tuple(latest_version):
+                self._run_upgrade_and_prompt_restart(latest_version)
+            else:
+                messagebox.showinfo("Updates", f"You are running the latest version ({current_version})")
+        
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to check for updates: {str(e)}")
+    
+    def _get_current_version(self):
+        """Get current version from package metadata"""
+        try:
+            import pkg_resources
+            return pkg_resources.get_distribution("timetracking").version
+        except:
+            # Fallback to reading from setup.py or pyproject.toml
+            try:
+                with open("pyproject.toml", "r") as f:
+                    content = f.read()
+                    for line in content.split("\n"):
+                        if line.strip().startswith("version ="):
+                            return line.split("=")[1].strip().strip('"')
+            except:
+                return "1.0.39"  # Fallback version
+    
+    def _get_latest_version(self):
+        """Get latest version from PyPI"""
+        try:
+            response = requests.get("https://pypi.org/pypi/timetracking/json", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                return data["info"]["version"]
+            return None
+        except:
+            return None
+    
+    def _version_tuple(self, version_str):
+        """Convert version string to tuple for comparison"""
+        try:
+            return tuple(map(int, version_str.split(".")))
+        except:
+            return (0, 0, 0)
+    
+    def _run_upgrade_and_prompt_restart(self, target_version):
+        """Run upgrade and prompt for restart"""
+        result = messagebox.askyesno(
+            "Update Available", 
+            f"Version {target_version} is available. Would you like to update now?"
+        )
+        
+        if result:
+            if self._attempt_upgrade(target_version):
+                self._post_upgrade_dialog(target_version)
+            else:
+                messagebox.showerror("Update Failed", "Failed to update. Please try again later.")
+    
+    def _attempt_upgrade(self, target_version):
+        """Attempt to upgrade the package"""
+        try:
+            # Check if running under pipx
+            if shutil.which('timetracking'):
+                # Running under pipx
+                cmd = ['pipx', 'upgrade', 'timetracking']
+            else:
+                # Running under regular pip
+                cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade', '--no-cache-dir', f'timetracking=={target_version}']
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            return result.returncode == 0
+        except Exception as e:
+            print(f"Upgrade failed: {e}")
+            return False
+    
+    def _post_upgrade_dialog(self, target_version):
+        """Show dialog after upgrade"""
+        result = messagebox.askyesno(
+            "Restart Required", 
+            f"Update to version {target_version} completed. Restart the application now?"
+        )
+        
+        if result:
+            self._restart_app()
+    
+    def _restart_app(self):
+        """Restart the application"""
+        try:
+            # Check if running under pipx
+            if shutil.which('timetracking'):
+                # Running under pipx
+                subprocess.Popen(['timetracking'])
+            else:
+                # Running under regular python
+                subprocess.Popen([sys.executable, '-m', 'timetracking'])
+            
+            # Close current application
+            self.root.quit()
+            sys.exit(0)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to restart: {str(e)}")
     
     def run(self):
         """Start the GUI application"""
