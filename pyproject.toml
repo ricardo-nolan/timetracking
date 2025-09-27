@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "timetracking"
-version = "1.0.41"
+version = "1.0.42"
 description = "A Python time tracking application with GUI, PDF export, and email functionality"
 readme = "README.md"
 license = {text = "MIT"}
@@ -38,6 +38,7 @@ dependencies = [
     "pytest",
     "pytest-cov",
     "cryptography",
+    "requests",
 ]
 
 [project.urls]
