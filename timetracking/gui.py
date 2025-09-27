@@ -1451,7 +1451,7 @@ class WeeklyReportDialog:
         ttk.Entry(main_frame, textvariable=self.custom_email, width=40).grid(row=3, column=1, sticky=(tk.W, tk.E), pady=(10, 5))
         
         # Weekly Reflection Section
-        ttk.Label(main_frame, text="Weekly Reflection (MSE Requirement):", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
+        ttk.Label(main_frame, text="Weekly Reflection:", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(20, 5))
         
         # Reflection template
         reflection_template = """• Key achievements this week:
@@ -1586,7 +1586,7 @@ class WeeklyReportDialog:
             
             email_body += f"""
                 
-                <p style='margin-top: 30px;'>Best regards,<br>{getattr(self.email_exporter, 'student_name', 'Student')}</p>
+                <p style='margin-top: 30px;'>Best regards,<br>{getattr(self.email_exporter, 'student_name', 'User')}</p>
             </div>
             """
             
@@ -1878,10 +1878,10 @@ class EmailSettingsDialog:
             password_entry.bind("<FocusIn>", on_password_focus_in)
             password_entry.bind("<FocusOut>", on_password_focus_out)
         
-        # Student Information
-        ttk.Label(main_frame, text="Student Information", font=("Arial", 12, "bold")).grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
+        # User Information
+        ttk.Label(main_frame, text="User Information", font=("Arial", 12, "bold")).grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
         
-        ttk.Label(main_frame, text="Student Name:").grid(row=8, column=0, sticky=tk.W, pady=(0, 5))
+        ttk.Label(main_frame, text="Your Name:").grid(row=8, column=0, sticky=tk.W, pady=(0, 5))
         self.student_name = tk.StringVar(value=getattr(self.email_exporter, 'student_name', '') or "")
         ttk.Entry(main_frame, textvariable=self.student_name, width=40).grid(row=8, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
         
